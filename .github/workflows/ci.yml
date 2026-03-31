@@ -2,10 +2,8 @@
 name: CI Pipeline
 
 on:
-  push:
-    branches: [main, dev]
   pull_request:
-    branches: [main, dev]
+    branches: [main, develop]
 
 jobs:
   lint-and-test:
@@ -50,7 +48,7 @@ jobs:
       - name: Install & lint
         run: |
           cd services/frontend
-          npm install
+          npm ci
           npm run lint || echo "No lint config yet"
 
       - name: Build check
