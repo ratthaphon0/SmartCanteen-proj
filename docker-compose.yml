@@ -1,0 +1,119 @@
+version: "3.9"
+
+services:
+  # ─── CV Engine ──────────────────────────────────
+  cv-engine:
+    build: ./services/cv-engine
+    restart: unless-stopped
+    environment:
+      - CAMERA_SOURCE=${CAMERA_SOURCE:-rtsp://cam1/stream}
+      - API_WS_URL=ws://api:8000/ws/seats
+      - REDIS_URL=redis://redis:6379/0
+      - MODEL_SIZE=${MODEL_SIZE:-yolov8n}
+      - CONFIDENCE_THRESHOLD=0.45
+    volumes:
+      - ./services/cv-engine/roi_config.json:/app/roi_config.json:ro
+      - ./services/cv-engine/models:/app/models:ro
+    devices:
+      - /dev/video0:/dev/video0   # webcam fallback
+    depends_on:
+      - api
+      - redis
+    networks:
+      - internal
+
+  # ─── FastAPI Backend ────────────────────────────
+  api:
+    build: ./services/api
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://canteen:${DB_PASS}@postgres:5432/canteen_db
+      - REDIS_URL=redis://redis:6379/0
+      - SECRET_KEY=${SECRET_KEY}
+      - ALLOWED_ORIGINS=${ALLOWED_ORIGINS:-http://localhost:3000}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    networks:
+      - internal
+
+  # ─── Frontend ───────────────────────────────────
+  frontend:
+    build:
+      context: ./services/frontend
+      args:
+        - VITE_API_URL=${API_URL:-http://localhost:8000}
+        - VITE_WS_URL=${WS_URL:-ws://localhost:8000}
+    restart: unless-stopped
+    ports:
+      - "3000:80"
+    networks:
+      - internal
+
+  # ─── Notification Worker ────────────────────────
+  notification:
+    build: ./services/notification
+    restart: unless-stopped
+    environment:
+      - REDIS_URL=redis://redis:6379/0
+      - FCM_KEY=${FCM_SERVER_KEY}
+    depends_on:
+      - redis
+    networks:
+      - internal
+
+  # ─── PostgreSQL ─────────────────────────────────
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: canteen_db
+      POSTGRES_USER: canteen
+      POSTGRES_PASSWORD: ${DB_PASS}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./infra/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U canteen"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - internal
+
+  # ─── Redis ──────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: redis-server --maxmemory 256mb --maxmemory-policy allkeys-lru
+    volumes:
+      - redis_data:/data
+    networks:
+      - internal
+
+  # ─── Nginx Reverse Proxy ────────────────────────
+  nginx:
+    image: nginx:alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./infra/nginx/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      - api
+      - frontend
+    networks:
+      - internal
+
+networks:
+  internal:
+    driver: bridge
+
+volumes:
+  postgres_data:
+  redis_data:

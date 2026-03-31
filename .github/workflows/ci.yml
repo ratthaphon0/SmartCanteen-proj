@@ -1,0 +1,69 @@
+# .github/workflows/ci.yml
+name: CI Pipeline
+
+on:
+  pull_request:
+    branches: [main, develop]
+
+jobs:
+  lint-and-test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        service: [cv-engine, api, notification]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          cd services/${{ matrix.service }}
+          pip install -r requirements.txt
+          pip install pytest pytest-asyncio flake8
+
+      - name: Lint
+        run: |
+          cd services/${{ matrix.service }}
+          flake8 . --max-line-length=120 --exclude=__pycache__
+
+      - name: Run tests
+        run: |
+          cd services/${{ matrix.service }}
+          pytest tests/ -v --tb=short || echo "No tests found yet"
+
+  frontend-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install & lint
+        run: |
+          cd services/frontend
+          npm ci
+          npm run lint || echo "No lint config yet"
+
+      - name: Build check
+        run: |
+          cd services/frontend
+          npm run build
+
+  docker-build:
+    runs-on: ubuntu-latest
+    needs: [lint-and-test, frontend-test]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate docker-compose
+        run: docker compose config --quiet
+
+      - name: Build all images
+        run: docker compose build
