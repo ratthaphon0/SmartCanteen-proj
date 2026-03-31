@@ -1,0 +1,19 @@
+name: Enforce PR Source Branch
+
+on:
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  check-source-branch:
+    name: Check PR Source
+    runs-on: ubuntu-latest
+    steps:
+      - name: Verify source branch is 'dev'
+        if: github.head_ref != 'dev'
+        run: |
+          echo "❌ ERROR: ไม่อนุญาตให้เปิด PR เข้ากิ่ง main โดยตรงจากกิ่ง ${GITHUB_HEAD_REF}"
+          echo "✅ กรุณาเปิด PR เอาโค้ดเข้ากิ่ง 'dev' ก่อน"
+          echo "✅ จากนั้นค่อยเปิด PR จาก 'dev' เข้า 'main' เท่านั้น"
+          exit 1
