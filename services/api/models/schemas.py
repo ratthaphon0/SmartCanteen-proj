@@ -42,7 +42,6 @@ class OrderCreate(BaseModel):
     user_id: str
     stall_id: str
     items: List[OrderItemCreate]
-    seat_id: Optional[str] = None
     priority: Optional[str] = "walk-in"  # walk-in | pre-order | vip
 
 
@@ -53,7 +52,6 @@ class OrderResponse(BaseModel):
     queue_token: Optional[str] = None
     status: str
     total_price: float = 0.0
-    seat_id: Optional[str] = None
     est_ready_at: Optional[datetime] = None
     created_at: Optional[datetime] = None
     completed_at: Optional[datetime] = None

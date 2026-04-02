@@ -58,7 +58,6 @@ CREATE TABLE IF NOT EXISTS orders (
     queue_token     VARCHAR(20),
     status          VARCHAR(20) DEFAULT 'pending',  -- pending|preparing|ready|completed|cancelled
     total_price     FLOAT DEFAULT 0.0,
-    seat_id         VARCHAR(20),
     est_ready_at    TIMESTAMPTZ,
     created_at      TIMESTAMPTZ DEFAULT NOW(),
     completed_at    TIMESTAMPTZ

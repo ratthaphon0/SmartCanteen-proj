@@ -89,7 +89,6 @@ class Order(Base):
     queue_token = Column(String(20))
     status = Column(String(20), default="pending")  # pending|preparing|ready|completed|cancelled
     total_price = Column(Float, default=0.0)
-    seat_id = Column(String(20))
     est_ready_at = Column(DateTime(timezone=True))
     created_at = Column(DateTime(timezone=True), default=utcnow)
     completed_at = Column(DateTime(timezone=True))

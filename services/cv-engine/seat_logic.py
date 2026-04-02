@@ -2,11 +2,15 @@
 Smart Canteen — Seat State Machine
 Temporal filtering, queue exclusion, chair-under-table compensation.
 Determines: occupied | reserved | vacant for each seat.
+
+[EXPERIMENTAL] Features marked as experimental:
+  - chair_roi scoring (shapely-based person-base-point in chair polygon)
+  - Crowd mode (threshold: n_seats × 1.5, pause: 45s)
 """
 
 import logging
 import time
-from collections import defaultdict, deque
+from collections import deque
 from typing import Dict, List, Optional
 
 from detector import Detection, RESERVED_OBJECTS
@@ -14,13 +18,31 @@ from utils import point_in_polygon, compute_iou
 
 logger = logging.getLogger(__name__)
 
+# ─── Shapely import (optional, graceful fallback) ─────
+try:
+    from shapely.geometry import Point, Polygon
+    HAS_SHAPELY = True
+    logger.info("shapely loaded — chair_roi scoring enabled")
+except ImportError:
+    HAS_SHAPELY = False
+    logger.warning("shapely not installed — chair_roi scoring disabled, "
+                   "falling back to IoU-based boost")
+
 # ─── Constants ────────────────────────────────────
 MIN_FRAMES_OCCUPIED = 8     # frames to confirm person → occupied
 MIN_FRAMES_RESERVED = 15    # frames to confirm object → reserved
 MIN_FRAMES_VACANT = 30      # frames to confirm empty → vacant (~10s at 3fps)
 HISTORY_BUFFER_SIZE = 60    # frame history per seat
-CROWD_THRESHOLD_MULTIPLIER = 3  # person count > seats × 3 → crowd mode
-CROWD_PAUSE_SECONDS = 45    # pause vacant transitions during crowd
+
+# [EXPERIMENTAL] Crowd mode
+CROWD_THRESHOLD_MULTIPLIER = 1.5   # person count > seats × 1.5 → crowd mode
+CROWD_PAUSE_SECONDS = 45           # pause vacant transitions during crowd
+
+# [EXPERIMENTAL] Chair ROI scoring
+CHAIR_SCORE_THRESHOLD = 5   # occupancy_score >= 5 → confirmed seated
+CHAIR_IN_CHAIR_BONUS = 5    # person base point inside chair_roi polygon
+CHAIR_IN_TABLE_BONUS = 1    # person base point inside table_roi but not chair
+CHAIR_TEMPORAL_BOOST = 3    # frames to skip in temporal buffer when chair confirms
 
 
 class SeatState:
@@ -60,8 +82,8 @@ class SeatStateManager:
     1. Filter queue exclusion zone detections
     2. Match detections to seat/table ROIs
     3. Apply temporal state machine
-    4. Handle crowd occlusion
-    5. Chair-under-table compensation
+    4. Handle crowd occlusion [EXPERIMENTAL]
+    5. Chair-under-table compensation with shapely scoring [EXPERIMENTAL]
     """
 
     def __init__(self, roi_config: dict):
@@ -69,6 +91,8 @@ class SeatStateManager:
         self.table_rois: Dict[str, List] = {}
         self.queue_zones: List[List] = []
         self.chair_rois: Dict[str, List] = {}
+        self.chair_polys: Dict[str, "Polygon"] = {}   # shapely Polygon cache
+        self.table_polys: Dict[str, "Polygon"] = {}    # shapely Polygon cache
         self.crowd_mode: bool = False
         self.crowd_mode_until: float = 0
         self.total_seats: int = 0
@@ -76,10 +100,15 @@ class SeatStateManager:
         self._init_from_config(roi_config)
 
     def _init_from_config(self, config: dict):
-        """Initialize seat states and ROIs from config."""
+        """Initialize seat states, ROIs, and shapely polygons from config."""
         for table in config.get("tables", []):
             table_id = table["table_id"]
-            self.table_rois[table_id] = table.get("table_roi", [])
+            table_roi = table.get("table_roi", [])
+            self.table_rois[table_id] = table_roi
+
+            # Build shapely polygon for table (if available)
+            if HAS_SHAPELY and len(table_roi) >= 3:
+                self.table_polys[table_id] = Polygon(table_roi)
 
             # Queue exclusion zones
             if "queue_exclusion" in table:
@@ -94,13 +123,27 @@ class SeatStateManager:
                     table_id=table_id
                 )
 
-                # Chair ROI (extends 20px below table boundary)
+                # Chair ROI
                 if "chair_roi" in seat:
-                    self.chair_rois[seat_id] = seat["chair_roi"]
+                    chair_roi = seat["chair_roi"]
+                    self.chair_rois[seat_id] = chair_roi
+
+                    # Build shapely polygon for chair
+                    if HAS_SHAPELY and len(chair_roi) >= 3:
+                        self.chair_polys[seat_id] = Polygon(chair_roi)
 
         self.total_seats = len(self.seats)
-        logger.info(f"Initialized {self.total_seats} seats, "
-                    f"{len(self.queue_zones)} queue zones")
+        chair_count = len(self.chair_rois)
+        logger.info(
+            f"Initialized {self.total_seats} seats, "
+            f"{chair_count} chair ROIs, "
+            f"{len(self.queue_zones)} queue zones"
+        )
+        if chair_count > 0 and HAS_SHAPELY:
+            logger.info("[EXPERIMENTAL] chair_roi scoring ACTIVE")
+        if chair_count > 0 and not HAS_SHAPELY:
+            logger.warning("[EXPERIMENTAL] chair_roi defined but shapely "
+                           "unavailable — using IoU fallback")
 
     def _filter_queue_zone(self, detections: List[Detection]) -> List[Detection]:
         """Step 1: Remove detections within queue exclusion zones."""
@@ -115,19 +158,72 @@ class SeatStateManager:
         return filtered
 
     def _check_crowd_mode(self, detections: List[Detection]):
-        """Step 4: Detect crowd occlusion scenario."""
+        """
+        [EXPERIMENTAL] Step 4: Detect crowd occlusion scenario.
+        Threshold: person_count > total_seats × 1.5
+        Effect: Pause all vacant transitions for 45 seconds.
+        """
         person_count = sum(1 for d in detections if d.class_name == "person")
+        threshold = self.total_seats * CROWD_THRESHOLD_MULTIPLIER
 
-        if person_count > self.total_seats * CROWD_THRESHOLD_MULTIPLIER:
+        if person_count > threshold:
             if not self.crowd_mode:
-                logger.warning(f"CROWD_ALERT: {person_count} persons detected "
-                               f"(threshold: {self.total_seats * CROWD_THRESHOLD_MULTIPLIER})")
+                logger.warning(
+                    f"[EXPERIMENTAL] CROWD_ALERT: {person_count} persons "
+                    f"detected (threshold: {threshold:.0f})"
+                )
             self.crowd_mode = True
             self.crowd_mode_until = time.time() + CROWD_PAUSE_SECONDS
         elif time.time() > self.crowd_mode_until:
             if self.crowd_mode:
-                logger.info("Crowd mode ended")
+                logger.info("[EXPERIMENTAL] Crowd mode ended")
             self.crowd_mode = False
+
+    def _evaluate_chair_score(
+        self,
+        seat: SeatState,
+        person_detections: List[Detection]
+    ) -> int:
+        """
+        [EXPERIMENTAL] Evaluate occupancy score using chair_roi.
+
+        Uses the person's base point (bottom-center of bounding box)
+        to determine if someone is truly seated vs. standing nearby.
+
+        Scoring:
+          - Person base in chair_roi → +5 (confirmed seated)
+          - Person base in table_roi only → +1 (possibly standing)
+
+        Returns:
+            Occupancy score (>= CHAIR_SCORE_THRESHOLD means confirmed seated)
+        """
+        seat_id = seat.seat_id
+        table_id = seat.table_id
+
+        # Check if we have shapely polygons for this seat
+        chair_poly = self.chair_polys.get(seat_id)
+        table_poly = self.table_polys.get(table_id)
+
+        if not chair_poly or not table_poly:
+            return 0  # No chair_roi defined or shapely unavailable
+
+        score = 0
+        for det in person_detections:
+            # Get person base point (bottom-center of bbox)
+            # BBox format: [x1, y1, x2, y2]
+            center_x = (det.bbox[0] + det.bbox[2]) / 2
+            bottom_y = det.bbox[3]
+            person_base = Point(center_x, bottom_y)
+
+            # Rule 1: Person base in table zone → +1
+            if table_poly.contains(person_base):
+                score += CHAIR_IN_TABLE_BONUS
+
+            # Rule 2: Person base in chair zone → +5 (confirmed seated)
+            if chair_poly.contains(person_base):
+                score += CHAIR_IN_CHAIR_BONUS
+
+        return score
 
     def _determine_seat_state(
         self,
@@ -142,6 +238,7 @@ class SeatStateManager:
         - Check person presence → occupied
         - Check object presence → reserved
         - Default → vacant (with temporal guard)
+        - [EXPERIMENTAL] Chair ROI scoring boosts occupied confidence
         """
         if seat.override:
             return  # Admin override active, skip
@@ -163,17 +260,25 @@ class SeatStateManager:
             and compute_iou(d.bbox, table_roi) > 0.25
         ]
 
-        # Step 5: Chair displacement boost
+        # [EXPERIMENTAL] Chair ROI scoring
         chair_boost = 0
-        if seat.seat_id in self.chair_rois:
-            chair_roi = self.chair_rois[seat.seat_id]
-            chair_displaced = any(
-                d.class_name == "person"
-                and compute_iou(d.bbox, chair_roi) > 0.15
-                for d in detections
-            )
-            if chair_displaced:
-                chair_boost = 2
+        if seat.seat_id in self.chair_rois and persons:
+            if HAS_SHAPELY and seat.seat_id in self.chair_polys:
+                # Full shapely-based scoring
+                chair_score = self._evaluate_chair_score(seat, persons)
+                if chair_score >= CHAIR_SCORE_THRESHOLD:
+                    # Confirmed seated — boost by skipping temporal frames
+                    chair_boost = CHAIR_TEMPORAL_BOOST
+            else:
+                # Fallback: IoU-based boost (original logic)
+                chair_roi_coords = self.chair_rois[seat.seat_id]
+                chair_displaced = any(
+                    d.class_name == "person"
+                    and compute_iou(d.bbox, chair_roi_coords) > 0.15
+                    for d in detections
+                )
+                if chair_displaced:
+                    chair_boost = 2
 
         # Record frame observation
         if persons:
@@ -218,7 +323,7 @@ class SeatStateManager:
                 seat.occupied_since = None
 
         elif observation == "none":
-            # In crowd mode, don't transition to vacant
+            # [EXPERIMENTAL] In crowd mode, don't transition to vacant
             if self.crowd_mode:
                 return
 
@@ -241,7 +346,7 @@ class SeatStateManager:
         # Step 1: Filter queue zone
         filtered = self._filter_queue_zone(detections)
 
-        # Step 4: Check crowd mode
+        # Step 4: Check crowd mode [EXPERIMENTAL]
         self._check_crowd_mode(filtered)
 
         # Steps 2-3, 5: Update each seat
