@@ -107,82 +107,84 @@ function FloorMap() {
   })
 
   return (
-    <div className="floor-map-page">
-      <div className="page-header">
-        <h1 className="page-title">🗺️ Floor Map — Real-time Seat Status</h1>
-        <p className="page-subtitle">
+    <div className="space-y-6">
+      <div className="mb-6">
+        <h1 className="text-2xl font-semibold mb-2">🗺️ Floor Map — Real-time Seat Status</h1>
+        <p className="text-sm text-gray-400">
           สถานะที่นั่งแบบเรียลไทม์ อัพเดททุก 2 วินาที
         </p>
       </div>
 
       {/* Stats */}
-      <div className="stats-grid">
-        <div className="stat-card">
-          <span className="stat-value" style={{ color: 'var(--accent-green)' }}>
-            {stats.vacant}
-          </span>
-          <span className="stat-label">ที่นั่งว่าง</span>
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+        <div className="bg-gray-800 border border-gray-700 rounded-lg p-4">
+          <div className="text-2xl font-bold text-green-500">{stats.vacant}</div>
+          <div className="text-sm text-gray-400">ที่นั่งว่าง</div>
         </div>
-        <div className="stat-card">
-          <span className="stat-value" style={{ color: 'var(--accent-red)' }}>
-            {stats.occupied}
-          </span>
-          <span className="stat-label">ไม่ว่าง</span>
+        <div className="bg-gray-800 border border-gray-700 rounded-lg p-4">
+          <div className="text-2xl font-bold text-red-500">{stats.occupied}</div>
+          <div className="text-sm text-gray-400">ไม่ว่าง</div>
         </div>
-        <div className="stat-card">
-          <span className="stat-value" style={{ color: 'var(--accent-amber)' }}>
-            {stats.reserved}
-          </span>
-          <span className="stat-label">จองแล้ว</span>
+        <div className="bg-gray-800 border border-gray-700 rounded-lg p-4">
+          <div className="text-2xl font-bold text-yellow-500">{stats.reserved}</div>
+          <div className="text-sm text-gray-400">จองแล้ว</div>
         </div>
-        <div className="stat-card">
-          <span className="stat-value" style={{ color: 'var(--text-secondary)' }}>
-            {connected ? '🟢' : '🔴'}
-          </span>
-          <span className="stat-label">
+        <div className="bg-gray-800 border border-gray-700 rounded-lg p-4">
+          <div className="text-2xl font-bold text-gray-400">{connected ? '🟢' : '🔴'}</div>
+          <div className="text-sm text-gray-400">
             {connected ? 'Connected' : 'Reconnecting...'} · {lastUpdate || '—'}
-          </span>
+          </div>
         </div>
       </div>
 
       {/* Floor Grid */}
-      <div className="floor-grid">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {Object.entries(tables).map(([tableId, tableSeats]) => (
-          <div key={tableId} className="table-card">
-            <div className="table-header">
-              <span className="table-id">{tableId}</span>
-              <span className="table-count">
+          <motion.div
+            key={tableId}
+            className="bg-gray-800 border border-gray-700 rounded-lg p-4 hover:border-gray-600 transition-colors"
+            whileHover={{ scale: 1.02 }}
+          >
+            <div className="flex justify-between items-center mb-3">
+              <span className="text-lg font-semibold">{tableId}</span>
+              <span className="text-xs bg-gray-700 px-2 py-1 rounded-full">
                 {tableSeats.filter(s => s.status === 'vacant').length}/{tableSeats.length} ว่าง
               </span>
             </div>
-            <div className="seats-row">
+            <div className="flex gap-2 flex-wrap">
               {tableSeats.map(seat => (
-                <div
+                <motion.div
                   key={seat.seat_id}
-                  className={`seat-node seat-${seat.status}`}
+                  className={`flex flex-col items-center gap-1 p-3 rounded-md bg-gray-700 border min-w-[52px] cursor-pointer ${
+                    seat.status === 'occupied' ? 'border-red-500/40' :
+                    seat.status === 'reserved' ? 'border-yellow-500/40' :
+                    'border-green-500/40'
+                  }`}
+                  whileHover={{ scale: 1.05 }}
                   title={`${seat.seat_id} — ${STATUS_LABELS[seat.status] || seat.status}
 Confidence: ${(seat.confidence * 100).toFixed(0)}%`}
                 >
-                  <div className="seat-indicator"
+                  <div
+                    className="w-3 h-3 rounded-full animate-pulse"
                     style={{ background: STATUS_COLORS[seat.status] || STATUS_COLORS.unknown }}
                   />
-                  <span className="seat-label">{seat.seat_id.split('-')[1]}</span>
+                  <span className="text-xs font-medium text-gray-300">{seat.seat_id.split('-')[1]}</span>
                   {seat.reserved_object && (
-                    <span className="seat-object">🎒</span>
+                    <span className="absolute -top-1 -right-1 text-xs">🎒</span>
                   )}
-                </div>
+                </motion.div>
               ))}
             </div>
-          </div>
+          </motion.div>
         ))}
       </div>
 
       {/* Legend */}
-      <div className="legend">
+      <div className="flex gap-4 justify-center mt-6">
         {Object.entries(STATUS_COLORS).filter(([k]) => k !== 'unknown').map(([status, color]) => (
-          <div key={status} className="legend-item">
-            <div className="legend-dot" style={{ background: color }} />
-            <span>{STATUS_LABELS[status]}</span>
+          <div key={status} className="flex items-center gap-2">
+            <div className="w-3 h-3 rounded-full" style={{ background: color }} />
+            <span className="text-sm text-gray-400">{STATUS_LABELS[status]}</span>
           </div>
         ))}
       </div>

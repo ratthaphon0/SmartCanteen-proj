@@ -1,22 +1,53 @@
 import { useState, useEffect } from 'react'
+import { motion } from 'framer-motion'
+import useAuthStore from '../stores/authStore'
+import useCartStore from '../stores/cartStore'
 
 const API_URL = import.meta.env.VITE_API_URL || ''
 
-function UserApp() {
-  const [stalls, setStalls] = useState([])
-  const [selectedStall, setSelectedStall] = useState(null)
-  const [menu, setMenu] = useState([])
-  const [cart, setCart] = useState([])
-  const [myOrders, setMyOrders] = useState([])
-  const [activeTab, setActiveTab] = useState('menu') // menu | cart | orders
-
-  // Demo user
-  const userId = 'USR-001'
+function WaitTimeCountdown({ initialTime }) {
+  const [timeLeft, setTimeLeft] = useState(initialTime * 60) // convert to seconds
 
   useEffect(() => {
-    fetchStalls()
-    fetchMyOrders()
-  }, [])
+    if (timeLeft <= 0) return
+
+    const timer = setInterval(() => {
+      setTimeLeft(prev => prev - 1)
+    }, 1000)
+
+    return () => clearInterval(timer)
+  }, [timeLeft])
+
+  const minutes = Math.floor(timeLeft / 60)
+  const seconds = timeLeft % 60
+
+  if (timeLeft <= 0) return <span className="text-green-500">พร้อมรับแล้ว!</span>
+
+  return (
+    <span className="text-yellow-500 font-mono">
+      {minutes}:{seconds.toString().padStart(2, '0')}
+    </span>
+  )
+}
+
+function UserApp() {
+  const { user, isAuthenticated, login, logout, checkAuth } = useAuthStore()
+  const { items: cart, selectedStall, addItem, removeItem, clearCart, setSelectedStall, getTotal, getItemCount } = useCartStore()
+
+  const [stalls, setStalls] = useState([])
+  const [menu, setMenu] = useState([])
+  const [myOrders, setMyOrders] = useState([])
+  const [activeTab, setActiveTab] = useState('menu') // menu | cart | orders
+  const [loginForm, setLoginForm] = useState({ username: '', password: '' })
+  const [loginError, setLoginError] = useState('')
+
+  useEffect(() => {
+    checkAuth()
+    if (isAuthenticated) {
+      fetchStalls()
+      fetchMyOrders()
+    }
+  }, [isAuthenticated])
 
   const fetchStalls = async () => {
     try {
@@ -38,39 +69,33 @@ function UserApp() {
 
   const fetchMyOrders = async () => {
     try {
-      const res = await fetch(`${API_URL}/api/orders/?user_id=${userId}&limit=10`)
+      const res = await fetch(`${API_URL}/api/orders/?user_id=${user?.id}&limit=10`)
       if (res.ok) setMyOrders(await res.json())
     } catch {
       setMyOrders(DEMO_ORDERS)
     }
   }
 
-  const selectStall = (stall) => {
+  const selectStallHandler = (stall) => {
     setSelectedStall(stall)
     fetchMenu(stall.stall_id)
   }
 
-  const addToCart = (item) => {
-    setCart(prev => {
-      const existing = prev.find(c => c.menu_id === item.menu_id)
-      if (existing) {
-        return prev.map(c =>
-          c.menu_id === item.menu_id ? { ...c, qty: c.qty + 1 } : c
-        )
-      }
-      return [...prev, { ...item, qty: 1 }]
-    })
-  }
-
-  const removeFromCart = (menuId) => {
-    setCart(prev => prev.filter(c => c.menu_id !== menuId))
+  const handleLogin = async (e) => {
+    e.preventDefault()
+    const result = await login(loginForm.username, loginForm.password)
+    if (!result.success) {
+      setLoginError(result.error)
+    } else {
+      setLoginError('')
+    }
   }
 
   const placeOrder = async () => {
     if (!selectedStall || cart.length === 0) return
 
     const orderData = {
-      user_id: userId,
+      user_id: user.id,
       stall_id: selectedStall.stall_id,
       items: cart.map(c => ({
         menu_id: c.menu_id,
@@ -90,72 +115,147 @@ function UserApp() {
       if (res.ok) {
         const order = await res.json()
         alert(`สั่งอาหารสำเร็จ! 🎉\nคิว: ${order.queue_token}`)
-        setCart([])
+        clearCart()
         fetchMyOrders()
         setActiveTab('orders')
       }
     } catch {
       alert('Demo mode — order would be placed here')
-      setCart([])
+      clearCart()
     }
   }
 
-  const totalPrice = cart.reduce((sum, c) => sum + c.price * c.qty, 0)
+  if (!isAuthenticated) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-900">
+        <motion.div
+          className="bg-gray-800 p-8 rounded-lg border border-gray-700 w-full max-w-md"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+        >
+          <h2 className="text-2xl font-bold mb-6 text-center">เข้าสู่ระบบ</h2>
+          <form onSubmit={handleLogin} className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium mb-2">ชื่อผู้ใช้</label>
+              <input
+                type="text"
+                value={loginForm.username}
+                onChange={(e) => setLoginForm(prev => ({ ...prev, username: e.target.value }))}
+                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-2">รหัสผ่าน</label>
+              <input
+                type="password"
+                value={loginForm.password}
+                onChange={(e) => setLoginForm(prev => ({ ...prev, password: e.target.value }))}
+                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                required
+              />
+            </div>
+            {loginError && <p className="text-red-500 text-sm">{loginError}</p>}
+            <button
+              type="submit"
+              className="w-full bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded-md font-medium transition-colors"
+            >
+              เข้าสู่ระบบ
+            </button>
+            <p className="text-center text-sm text-gray-400 mt-4">
+              Demo: username: demo, password: demo
+            </p>
+          </form>
+        </motion.div>
+      </div>
+    )
+  }
 
   return (
-    <div className="user-app">
-      <div className="page-header">
-        <h1 className="page-title">🛒 สั่งอาหาร</h1>
-        <p className="page-subtitle">เลือกร้าน → เลือกเมนู → สั่งเลย!</p>
+    <div className="space-y-6">
+      <div className="flex justify-between items-center">
+        <div>
+          <h1 className="text-2xl font-semibold">🛒 สั่งอาหาร</h1>
+          <p className="text-sm text-gray-400">เลือกร้าน → เลือกเมนู → สั่งเลย!</p>
+        </div>
+        <button
+          onClick={logout}
+          className="px-4 py-2 bg-red-600 hover:bg-red-700 rounded-md text-sm font-medium transition-colors"
+        >
+          ออกจากระบบ
+        </button>
       </div>
 
       {/* Tab Switcher */}
-      <div className="tab-switcher">
-        {['menu', 'cart', 'orders'].map(tab => (
+      <div className="flex gap-2">
+        {[
+          { key: 'menu', label: '🍜 เมนู', count: null },
+          { key: 'cart', label: '🛒 ตะกร้า', count: getItemCount() },
+          { key: 'orders', label: '📋 คำสั่งซื้อ', count: null }
+        ].map(tab => (
           <button
-            key={tab}
-            className={`tab-btn ${activeTab === tab ? 'active' : ''}`}
-            onClick={() => setActiveTab(tab)}
+            key={tab.key}
+            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+              activeTab === tab.key
+                ? 'bg-blue-600 text-white'
+                : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+            }`}
+            onClick={() => setActiveTab(tab.key)}
           >
-            {tab === 'menu' && '🍜 เมนู'}
-            {tab === 'cart' && `🛒 ตะกร้า (${cart.length})`}
-            {tab === 'orders' && '📋 คำสั่งซื้อ'}
+            {tab.label} {tab.count !== null && tab.count > 0 && `(${tab.count})`}
           </button>
         ))}
       </div>
 
       {/* Menu Tab */}
       {activeTab === 'menu' && (
-        <div className="menu-section">
+        <div className="space-y-6">
           {/* Stall Selector */}
-          <div className="stall-list">
+          <div className="flex gap-2 flex-wrap">
             {(stalls.length > 0 ? stalls : DEMO_STALLS).map(stall => (
-              <button
+              <motion.button
                 key={stall.stall_id}
-                className={`stall-chip ${selectedStall?.stall_id === stall.stall_id ? 'active' : ''}`}
-                onClick={() => selectStall(stall)}
+                className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
+                  selectedStall?.stall_id === stall.stall_id
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                }`}
+                onClick={() => selectStallHandler(stall)}
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
               >
                 {stall.name}
-                {stall.avg_rating > 0 && <span className="stall-rating">⭐ {stall.avg_rating}</span>}
-              </button>
+                {stall.avg_rating > 0 && <span className="ml-2">⭐ {stall.avg_rating}</span>}
+              </motion.button>
             ))}
           </div>
 
           {/* Menu Items */}
-          <div className="menu-grid">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {(menu.length > 0 ? menu : DEMO_MENU).map(item => (
-              <div key={item.menu_id} className="menu-card">
-                <div className="menu-info">
-                  <span className="menu-name">{item.name}</span>
-                  <span className="menu-price">฿{item.price}</span>
-                  {item.calories && (
-                    <span className="menu-cal">{item.calories} kcal</span>
-                  )}
+              <motion.div
+                key={item.menu_id}
+                className="bg-gray-800 border border-gray-700 rounded-lg p-4 hover:border-gray-600 transition-colors"
+                whileHover={{ scale: 1.02 }}
+              >
+                <div className="flex justify-between items-start mb-3">
+                  <div>
+                    <h3 className="font-semibold">{item.name}</h3>
+                    <p className="text-sm text-gray-400">฿{item.price}</p>
+                    {item.calories && (
+                      <p className="text-xs text-gray-500">{item.calories} kcal</p>
+                    )}
+                  </div>
+                  <motion.button
+                    className="bg-green-600 hover:bg-green-700 px-3 py-1 rounded text-sm font-medium transition-colors"
+                    onClick={() => addItem(item)}
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                  >
+                    + เพิ่ม
+                  </motion.button>
                 </div>
-                <button className="btn btn-primary btn-sm" onClick={() => addToCart(item)}>
-                  + เพิ่ม
-                </button>
-              </div>
+              </motion.div>
             ))}
           </div>
         </div>
@@ -163,32 +263,44 @@ function UserApp() {
 
       {/* Cart Tab */}
       {activeTab === 'cart' && (
-        <div className="cart-section">
+        <div className="space-y-4">
           {cart.length === 0 ? (
-            <div className="empty-state">
+            <div className="text-center py-8 text-gray-400">
               <p>🛒 ตะกร้าว่าง — เลือกเมนูจากแท็บเมนูได้เลย!</p>
             </div>
           ) : (
             <>
               {cart.map(item => (
-                <div key={item.menu_id} className="cart-item card">
-                  <div className="cart-item-info">
-                    <span className="cart-name">{item.name}</span>
-                    <span className="cart-qty">x{item.qty}</span>
-                    <span className="cart-price">฿{item.price * item.qty}</span>
+                <motion.div
+                  key={item.menu_id}
+                  className="bg-gray-800 border border-gray-700 rounded-lg p-4 flex justify-between items-center"
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                >
+                  <div>
+                    <h3 className="font-semibold">{item.name}</h3>
+                    <p className="text-sm text-gray-400">฿{item.price} x {item.qty} = ฿{item.price * item.qty}</p>
                   </div>
-                  <button className="btn btn-sm" onClick={() => removeFromCart(item.menu_id)}>
+                  <button
+                    className="text-red-500 hover:text-red-400 text-xl"
+                    onClick={() => removeItem(item.menu_id)}
+                  >
                     ✕
                   </button>
-                </div>
+                </motion.div>
               ))}
-              <div className="cart-total card">
-                <span>รวมทั้งหมด</span>
-                <span className="total-price">฿{totalPrice}</span>
+              <div className="bg-gray-800 border border-gray-700 rounded-lg p-4 flex justify-between items-center">
+                <span className="font-semibold">รวมทั้งหมด</span>
+                <span className="text-xl font-bold text-green-500">฿{getTotal()}</span>
               </div>
-              <button className="btn btn-primary btn-lg" onClick={placeOrder}>
-                🛒 สั่งเลย — ฿{totalPrice}
-              </button>
+              <motion.button
+                className="w-full bg-blue-600 hover:bg-blue-700 px-6 py-3 rounded-lg font-semibold text-lg transition-colors"
+                onClick={placeOrder}
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+              >
+                🛒 สั่งเลย — ฿{getTotal()}
+              </motion.button>
             </>
           )}
         </div>
@@ -196,19 +308,32 @@ function UserApp() {
 
       {/* Orders Tab */}
       {activeTab === 'orders' && (
-        <div className="orders-section">
+        <div className="space-y-4">
           {(myOrders.length > 0 ? myOrders : DEMO_ORDERS).map(order => (
-            <div key={order.order_id} className="order-card card">
-              <div className="order-header">
-                <span className="order-id">{order.order_id}</span>
-                <span className={`badge badge-${order.status}`}>{order.status}</span>
+            <motion.div
+              key={order.order_id}
+              className="bg-gray-800 border border-gray-700 rounded-lg p-4"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+            >
+              <div className="flex justify-between items-center mb-2">
+                <span className="font-semibold">{order.order_id}</span>
+                <span className={`px-2 py-1 rounded text-xs font-medium ${
+                  order.status === 'completed' ? 'bg-green-600' :
+                  order.status === 'preparing' ? 'bg-yellow-600' : 'bg-gray-600'
+                }`}>
+                  {order.status}
+                </span>
               </div>
-              <div className="order-details">
-                <span>คิว: {order.queue_token}</span>
-                <span>ร้าน: {order.stall_id}</span>
-                <span>฿{order.total_price}</span>
+              <div className="text-sm text-gray-400 space-y-1">
+                <p>คิว: {order.queue_token}</p>
+                <p>ร้าน: {order.stall_id}</p>
+                <p>฿{order.total_price}</p>
+                {order.status === 'preparing' && order.estimated_wait_time > 0 && (
+                  <p>เวลารอ: <WaitTimeCountdown initialTime={order.estimated_wait_time} /></p>
+                )}
               </div>
-            </div>
+            </motion.div>
           ))}
         </div>
       )}
@@ -233,8 +358,8 @@ const DEMO_MENU = [
 ]
 
 const DEMO_ORDERS = [
-  { order_id: 'ORD-20250401-0001', queue_token: 'A-001', stall_id: 'STALL-01', status: 'preparing', total_price: 85 },
-  { order_id: 'ORD-20250401-0002', queue_token: 'C-012', stall_id: 'STALL-03', status: 'completed', total_price: 60 },
+  { order_id: 'ORD-20250401-0001', queue_token: 'A-001', stall_id: 'STALL-01', status: 'preparing', total_price: 85, estimated_wait_time: 15 },
+  { order_id: 'ORD-20250401-0002', queue_token: 'C-012', stall_id: 'STALL-03', status: 'completed', total_price: 60, estimated_wait_time: 0 },
 ]
 
 export default UserApp

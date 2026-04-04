@@ -1,43 +1,69 @@
-import { BrowserRouter, Routes, Route, NavLink } from 'react-router-dom'
-import FloorMap from './pages/FloorMap.jsx'
-import UserApp from './pages/UserApp.jsx'
-import StallPanel from './pages/StallPanel.jsx'
-import './App.css'
+import React from 'react';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import './index.css';
+
+// Layouts
+import { UserLayout } from './layouts/UserLayout';
+import { StallLayout } from './layouts/StallLayout';
+import { AdminLayout } from './layouts/AdminLayout';
+
+// User Pages
+import { UserLogin } from './pages/user/UserLogin';
+import { UserDashboard } from './pages/user/UserDashboard';
+import { UserMap } from './pages/user/UserMap';
+import { UserStalls } from './pages/user/UserStalls';
+import { UserCart } from './pages/user/UserCart';
+import { UserQueue } from './pages/user/UserQueue';
+
+// Stall Pages
+import { StallOrders } from './pages/stall/StallOrders';
+import { StallMenu } from './pages/stall/StallMenu';
+import { StallAnalytics } from './pages/stall/StallAnalytics';
+
+// Admin Pages
+import { AdminAnalytics } from './pages/admin/AdminAnalytics';
+import { AdminConfig } from './pages/admin/AdminConfig';
+import { AdminMonitoring } from './pages/admin/AdminMonitoring';
 
 function App() {
   return (
     <BrowserRouter>
-      <div className="app">
-        {/* ─── Navigation ─── */}
-        <nav className="nav-bar">
-          <div className="nav-brand">
-            <span className="nav-icon">🍽️</span>
-            <span className="nav-title">Smart Canteen</span>
-          </div>
-          <div className="nav-links">
-            <NavLink to="/" className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'}>
-              Floor Map
-            </NavLink>
-            <NavLink to="/order" className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'}>
-              สั่งอาหาร
-            </NavLink>
-            <NavLink to="/stall" className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'}>
-              Stall Panel
-            </NavLink>
-          </div>
-        </nav>
+      <Routes>
+        {/* Default Redirect to User Login */}
+        <Route path="/" element={<Navigate to="/user/login" replace />} />
 
-        {/* ─── Routes ─── */}
-        <main className="main-content">
-          <Routes>
-            <Route path="/" element={<FloorMap />} />
-            <Route path="/order" element={<UserApp />} />
-            <Route path="/stall" element={<StallPanel />} />
-          </Routes>
-        </main>
-      </div>
+        {/* 📱 User Application (PWA) */}
+        <Route path="/user/login" element={<UserLogin />} />
+        
+        <Route path="/user" element={<UserLayout />}>
+          <Route path="dashboard" element={<UserDashboard />} />
+          <Route path="map" element={<UserMap />} />
+          <Route path="stalls" element={<UserStalls />} />
+          <Route path="cart" element={<UserCart />} />
+          <Route path="queue" element={<UserQueue />} />
+        </Route>
+
+        {/* 🍳 Stall Vendor Panel */}
+        <Route path="/stall" element={<StallLayout border="none" />}>
+          <Route index element={<Navigate to="orders" replace />} />
+          <Route path="orders" element={<StallOrders />} />
+          <Route path="menu" element={<StallMenu />} />
+          <Route path="analytics" element={<StallAnalytics />} />
+        </Route>
+
+        {/* ⚙️ Admin Dashboard */}
+        <Route path="/admin" element={<AdminLayout />}>
+          <Route index element={<Navigate to="analytics" replace />} />
+          <Route path="analytics" element={<AreaChartAdminWrapper />} />
+          <Route path="monitoring" element={<AdminMonitoring />} />
+          <Route path="config" element={<AdminConfig />} />
+        </Route>
+      </Routes>
     </BrowserRouter>
-  )
+  );
 }
 
-export default App
+// Simple wrapper to fix naming clash or just use direct components
+const AreaChartAdminWrapper = () => <AdminAnalytics />;
+
+export default App;
