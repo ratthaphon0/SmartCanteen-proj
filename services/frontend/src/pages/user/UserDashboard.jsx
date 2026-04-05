@@ -1,91 +1,73 @@
 import React from 'react';
-import { GlassCard } from '../../components/ui/GlassCard';
-import { Badge } from '../../components/ui/Badge';
 import { motion } from 'framer-motion';
-import { Search, Flame, Users, Clock, ArrowRight } from 'lucide-react';
 
-export const UserDashboard = () => {
+export const UserDashboard = ({ cart, setCart, stallOrders }) => {
+  const addToCart = (name, price, emoji) => {
+    setCart(prev => {
+      const existing = prev.find(item => item.name === name);
+      if (existing) {
+        return prev.map(item => item.name === name ? { ...item, qty: item.qty + 1 } : item);
+      }
+      return [...prev, { name, price, emoji, qty: 1 }];
+    });
+  };
+
+  const quickOrders = [
+    { name: 'ข้าวมันไก่', price: 55, emoji: '🍗' },
+    { name: 'ก๋วยเตี๋ยวเรือ', price: 40, emoji: '🍜' },
+    { name: 'ข้าวแกงกะหรี่', price: 60, emoji: '🍛' },
+    { name: 'ต้มยำกุ้ง', price: 80, emoji: '🦐' }
+  ];
+
   return (
-    <div className="flex flex-col gap-6">
-      <header className="mb-2">
-        <h1 className="text-3xl font-black text-white tracking-tight mb-1">สวัสดี, Supachai 👋</h1>
-        <p className="text-gray-500 font-medium">Have a great meal today!</p>
-      </header>
+    <div className="flex flex-col h-full bg-kg-dark text-kg-green-p font-th">
+      {/* Hero */}
+      <div className="relative overflow-hidden bg-gradient-to-br from-kg-green-d to-kg-green/30 border border-kg-green/25 rounded-2xl p-6 mb-5 group">
+        <div className="absolute right-0 top-0 text-[80px] opacity-[0.05] leading-none select-none group-hover:scale-110 transition-transform">🌿</div>
+        <p className="text-sm text-kg-green-l/80 mb-1 font-en font-bold uppercase tracking-widest">สวัสดี 👋</p>
+        <h2 className="text-2xl font-bold mb-3 italic">ด.ช.เกษตร สุขสงบ</h2>
+        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-kg-green-l/15 text-kg-green-l border border-kg-green-l/25 font-en tracking-wider uppercase">🏫 คณะเกษตร</span>
+      </div>
 
-      {/* Hero Banner */}
-      <GlassCard className="bg-gradient-to-br from-blue-600 to-purple-600 border-none text-white p-6 shadow-2xl relative overflow-hidden group">
-        <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
-          <Flame size={120} />
-        </div>
-        
-        <div className="relative z-10">
-          <div className="inline-flex items-center gap-2 bg-white/20 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest mb-4">
-            🔥 Exclusive Offer
+      {/* Quick Order */}
+      <div className="mb-6">
+        <div className="flex justify-between items-end mb-4 px-1">
+          <div>
+            <div className="font-en font-extrabold text-xl leading-none">สั่งอาหารด่วน</div>
+            <div className="text-[10px] text-kg-green-p/40 font-en tracking-[0.2em] uppercase mt-1">Popular Picks</div>
           </div>
-          <h3 className="text-2xl font-black tracking-tight mb-2">Flash Sale!</h3>
-          <p className="text-sm font-medium text-white/80 leading-relaxed max-w-[200px]">
-            รับส่วนลด 15 บาท เมื่อสั่งเมนูข้าวราดแกงทุกร้านในแอป
-          </p>
         </div>
-      </GlassCard>
-
-      {/* Stats Grid */}
-      <div className="grid grid-cols-2 gap-4">
-        <GlassCard className="flex flex-col items-center justify-center py-6 border-white/5 shadow-xl group">
-          <Users size={24} className="text-emerald-500 mb-3 group-hover:scale-110 transition-transform" />
-          <div className="text-3xl font-black text-emerald-500 tracking-tighter">45</div>
-          <div className="text-[10px] text-gray-500 font-bold uppercase tracking-widest mt-1">ที่นั่งว่าง</div>
-        </GlassCard>
         
-        <GlassCard className="flex flex-col items-center justify-center py-6 border-white/5 shadow-xl group">
-          <Clock size={24} className="text-cyan-500 mb-3 group-hover:scale-110 transition-transform" />
-          <div className="text-3xl font-black text-cyan-500 tracking-tighter">8m</div>
-          <div className="text-[10px] text-gray-500 font-bold uppercase tracking-widest mt-1">เวลารอฉลี่ย</div>
-        </GlassCard>
-      </div>
-
-      {/* Quick Search */}
-      <div className="relative group">
-        <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-          <Search size={18} className="text-gray-600 group-focus-within:text-blue-500 transition-colors" />
+        <div className="grid grid-cols-2 gap-3">
+          {quickOrders.map((food, i) => (
+            <motion.div 
+              key={i}
+              whileHover={{ y: -4 }}
+              whileTap={{ scale: 0.98 }}
+              onClick={() => addToCart(food.name, food.price, food.emoji)}
+              className="bg-kg-card border border-kg-green/20 rounded-2xl p-4 cursor-pointer hover:border-kg-green-l/40 transition-all shadow-xl"
+            >
+              <div className="text-4xl text-center mb-3">{food.emoji}</div>
+              <div className="font-bold text-sm mb-1">{food.name}</div>
+              <div className="font-en font-extrabold text-kg-green-l text-sm mb-3">฿{food.price}</div>
+              <button className="w-full py-2 text-[10px] bg-kg-green text-white rounded-xl font-bold uppercase tracking-widest hover:bg-kg-green-l transition-all">+ เพิ่มลงตะกร้า</button>
+            </motion.div>
+          ))}
         </div>
-        <input 
-          type="text" 
-          placeholder="Search for food or stalls..." 
-          className="w-full pl-12 pr-4 py-4 rounded-2xl bg-white/5 border border-white/10 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500/30 transition-all placeholder:text-gray-600" 
-        />
       </div>
 
-      {/* Section Header */}
-      <div className="flex justify-between items-center mt-2 px-1">
-        <h2 className="text-lg font-black text-white/90">ร้านอาหารแนะนำ</h2>
-        <button className="text-[10px] font-black text-gray-500 hover:text-blue-400 uppercase tracking-widest transition-colors flex items-center gap-1.5">
-          View all <ArrowRight size={12} />
-        </button>
-      </div>
-      
-      {/* Popular Stalls List */}
-      <div className="flex flex-col gap-3">
-        {[1, 2].map((i) => (
-          <GlassCard key={i} interactive className="flex py-4 px-5 justify-between items-center group/card border-white/5">
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 rounded-xl bg-gray-800 flex items-center justify-center overflow-hidden border border-white/5">
-                <span className="text-xl">{i === 1 ? '🍜' : '🍛'}</span>
-              </div>
-              <div className="flex flex-col">
-                <h3 className="font-bold text-white group-hover/card:text-blue-400 transition-colors uppercase tracking-tight">
-                  {i === 1 ? 'ก๋วยเตี๋ยวลุงแดง' : 'ข้าวมันไก่เจ๊สม'}
-                </h3>
-                <div className="flex items-center gap-2 mt-1">
-                  <Badge status={i === 1 ? 'preparing' : 'vacant'} className="scale-[0.8] origin-left">
-                    {i === 1 ? 'รอนาน (15m)' : 'คิวสั้น (2m)'}
-                  </Badge>
-                </div>
-              </div>
-            </div>
-            <ArrowRight size={16} className="text-gray-700 group-hover/card:text-blue-500 group-hover/card:translate-x-1 transition-all" />
-          </GlassCard>
-        ))}
+      {/* Stats */}
+      <div className="grid grid-cols-2 gap-3 pb-6">
+        <div className="bg-kg-card border border-kg-green/20 rounded-2xl p-4 shadow-xl">
+          <div className="text-[10px] font-en tracking-widest uppercase text-kg-green-p/40 mb-2">ออเดอร์วันนี้</div>
+          <div className="font-en text-4xl font-extrabold text-kg-green-l leading-none">3</div>
+          <div className="text-[10px] text-kg-green-l/60 mt-2 font-en font-medium italic">↑ 1 จากเมื่อวาน</div>
+        </div>
+        <div className="bg-kg-card border border-kg-green/20 rounded-2xl p-4 shadow-xl">
+          <div className="text-[10px] font-en tracking-widest uppercase text-kg-green-p/40 mb-2">คิวของคุณ</div>
+          <div className="font-en text-4xl font-extrabold text-kg-gold-l leading-none italic">Q-07</div>
+          <div className="text-[10px] text-kg-green-p/40 mt-2 font-en font-medium">รอประมาณ ~4 นาที</div>
+        </div>
       </div>
     </div>
   );

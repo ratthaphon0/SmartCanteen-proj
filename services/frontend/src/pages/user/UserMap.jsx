@@ -1,82 +1,123 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { GlassCard } from '../../components/ui/GlassCard';
 import { Badge } from '../../components/ui/Badge';
-import { motion } from 'framer-motion';
-import { Map as MapIcon, RotateCw, Filter, Layers } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Map as MapIcon, RotateCw, Filter, Layers, Info } from 'lucide-react';
+
+const STATUS_COLORS = {
+  occupied: '#ef4444',
+  reserved: '#FFD700',
+  vacant: '#00A651',
+};
+
+const DEMO_SEATS = [
+  { seat_id: 'T01-S1', table_id: 'T01', status: 'occupied' },
+  { seat_id: 'T01-S2', table_id: 'T01', status: 'vacant' },
+  { seat_id: 'T01-S3', table_id: 'T01', status: 'reserved' },
+  { seat_id: 'T02-S1', table_id: 'T02', status: 'vacant' },
+  { seat_id: 'T02-S2', table_id: 'T02', status: 'vacant' },
+];
 
 export const UserMap = () => {
+  const [activeTable, setActiveTable] = useState(null);
+
+  const tables = {};
+  DEMO_SEATS.forEach(seat => {
+    if (!tables[seat.table_id]) tables[seat.table_id] = [];
+    tables[seat.table_id].push(seat);
+  });
+
   return (
     <motion.div 
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      className="flex flex-col gap-5 h-full min-h-[500px]"
+      className="flex flex-col gap-5 h-full"
     >
       <header className="flex justify-between items-end mb-2">
         <div>
-          <h1 className="text-3xl font-black text-white tracking-tight leading-none mb-2">AI Floor Map</h1>
-          <p className="text-gray-500 font-medium text-xs uppercase tracking-widest leading-none">Real-time Seat Detection</p>
+          <h1 className="text-3xl font-black text-white tracking-tight leading-none mb-2 uppercase italic">AI Location</h1>
+          <p className="text-[#FFD700]/60 font-medium text-[10px] uppercase tracking-widest leading-none">Find your perfect seat</p>
         </div>
-        <button className="p-3 bg-white/5 rounded-xl border border-white/10 text-gray-500 hover:text-blue-400 transition-colors">
+        <button className="p-3 bg-[#0a2a1b] rounded-xl border border-[#006633]/30 text-[#FFD700] hover:scale-110 transition-transform">
           <RotateCw size={18} />
         </button>
       </header>
 
-      {/* Legend & Stats */}
-      <div className="flex gap-2 flex-wrap mb-2">
-        <Badge status="vacant" className="bg-emerald-500/10 text-emerald-500 py-1.5 px-3">ที่นั่งว่าง: 45</Badge>
-        <Badge status="occupied" className="bg-red-500/10 text-red-500 py-1.5 px-3">ไม่ว่าง: 120</Badge>
-        <Badge status="reserved" className="bg-amber-500/10 text-amber-500 py-1.5 px-3">จอง/วางของ: 12</Badge>
+      {/* Quick Stats */}
+      <div className="grid grid-cols-3 gap-2">
+        <GlassCard className="p-3 text-center border-[#00A651]/20 bg-[#00A651]/5">
+           <div className="text-xl font-black text-[#00A651]">45</div>
+           <div className="text-[8px] font-black text-gray-500 uppercase tracking-widest">Free</div>
+        </GlassCard>
+        <GlassCard className="p-3 text-center border-[#ef4444]/20 bg-[#ef4444]/5">
+           <div className="text-xl font-black text-[#ef4444]">12</div>
+           <div className="text-[8px] font-black text-gray-500 uppercase tracking-widest">Full</div>
+        </GlassCard>
+        <GlassCard className="p-3 text-center border-[#FFD700]/20 bg-[#FFD700]/5">
+           <div className="text-xl font-black text-[#FFD700]">8</div>
+           <div className="text-[8px] font-black text-gray-500 uppercase tracking-widest">Reserved</div>
+        </GlassCard>
       </div>
 
-      <GlassCard className="flex-1 flex flex-col items-center justify-center min-h-[350px] relative overflow-hidden bg-grid-white/[0.02] border-white/5 group shadow-black/80">
-        {/* Floating Controls */}
-        <div className="absolute top-4 right-4 flex flex-col gap-2">
-          <button className="p-2 bg-black/40 backdrop-blur-md rounded-lg border border-white/10 text-white/60 hover:text-white transition-colors">
-            <Filter size={16} />
-          </button>
-          <button className="p-2 bg-black/40 backdrop-blur-md rounded-lg border border-white/10 text-white/60 hover:text-white transition-colors">
-            <Layers size={16} />
-          </button>
+      <GlassCard className="flex-1 p-6 relative overflow-hidden bg-grid-white/[0.02] border-[#006633]/20 bg-[#0a2a1b]/20 rounded-3xl min-h-[400px]">
+        <div className="grid grid-cols-1 gap-6">
+          {Object.entries(tables).map(([tableId, tableSeats]) => (
+            <motion.div 
+              key={tableId}
+              onClick={() => setActiveTable(activeTable === tableId ? null : tableId)}
+              className={`p-4 rounded-2xl border transition-all cursor-pointer ${
+                activeTable === tableId ? 'bg-[#006633]/20 border-[#FFD700]/40' : 'bg-black/20 border-white/5'
+              }`}
+            >
+              <div className="flex justify-between items-center mb-4">
+                <span className="font-black text-white uppercase italic tracking-tighter">{tableId}</span>
+                <Badge className="bg-[#FFD700]/10 text-[#FFD700] border-[#FFD700]/20 px-2 text-[9px]">
+                  {tableSeats.filter(s => s.status === 'vacant').length} Free
+                </Badge>
+              </div>
+              <div className="flex gap-2 justify-center">
+                {tableSeats.map(seat => (
+                  <div 
+                    key={seat.seat_id}
+                    className="w-10 h-10 rounded-xl border border-white/5 flex items-center justify-center relative overflow-hidden"
+                    style={{ background: `${STATUS_COLORS[seat.status]}10` }}
+                  >
+                    <div 
+                      className={`w-2 h-2 rounded-full ${seat.status === 'vacant' ? 'animate-pulse' : ''}`}
+                      style={{ background: STATUS_COLORS[seat.status] }}
+                    />
+                  </div>
+                ))}
+              </div>
+            </motion.div>
+          ))}
         </div>
 
-        {/* Map Center */}
-        <div className="text-center">
-          <motion.div 
-            animate={{ scale: [1, 1.05, 1], rotate: [0, 2, -2, 0] }}
-            transition={{ repeat: Infinity, duration: 8 }}
-            className="text-6xl mb-6 drop-shadow-2xl"
-          >
-            🗺️
-          </motion.div>
-          <p className="font-black text-white uppercase tracking-widest text-sm mb-2 group-hover:text-blue-400 transition-colors">
-            Interactive Floor Map
-          </p>
-          <p className="text-[10px] text-gray-600 font-bold uppercase tracking-[0.2em] max-w-[200px] mx-auto leading-relaxed">
-            SVG Map will be injected here via AI pipeline WebSocket signal.
-          </p>
-        </div>
-
-        {/* Pulse Indicator */}
-        <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex items-center gap-2">
-             <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse"></span>
-             <span className="text-[9px] font-black text-gray-500 uppercase tracking-widest">Live Stream Active</span>
+        {/* Legend Overlay */}
+        <div className="absolute bottom-6 left-6 right-6 flex justify-between items-center bg-black/60 backdrop-blur-md p-3 rounded-2xl border border-white/10">
+           <div className="flex gap-4">
+              <div className="flex items-center gap-1.5">
+                 <div className="w-2 h-2 rounded-full bg-[#00A651]" />
+                 <span className="text-[8px] font-black text-gray-400 uppercase tracking-widest">Free</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                 <div className="w-2 h-2 rounded-full bg-[#ef4444]" />
+                 <span className="text-[8px] font-black text-gray-400 uppercase tracking-widest">Full</span>
+              </div>
+           </div>
+           <Info size={14} className="text-[#FFD700]" />
         </div>
       </GlassCard>
 
-      <div className="flex gap-4 px-2">
-        <GlassCard className="flex-1 p-4 flex items-center gap-3 border-white/5 bg-white/[0.03]">
-          <div className="w-8 h-8 rounded-lg bg-orange-500/10 flex items-center justify-center text-orange-500">
-            <Filter size={14} />
-          </div>
-          <span className="text-[10px] font-black uppercase tracking-widest text-gray-400">Filter Zones</span>
-        </GlassCard>
-        <GlassCard className="flex-1 p-4 flex items-center gap-3 border-white/5 bg-white/[0.03]">
-          <div className="w-8 h-8 rounded-lg bg-purple-500/10 flex items-center justify-center text-purple-500">
-            <Layers size={14} />
-          </div>
-          <span className="text-[10px] font-black uppercase tracking-widest text-gray-400">Heatmap Mode</span>
-        </GlassCard>
-      </div>
+      <Button className="w-full py-4 bg-[#FFD700] text-black font-black uppercase tracking-widest text-xs rounded-2xl hover:scale-[0.98] transition-all shadow-xl shadow-[#FFD700]/10">
+        Scan QR to Reserve
+      </Button>
     </motion.div>
   );
 };
+
+const Button = ({ children, className, ...props }) => (
+  <button className={`flex items-center justify-center gap-2 ${className}`} {...props}>
+    {children}
+  </button>
+);

@@ -1,107 +1,113 @@
 import React from 'react';
-import { GlassCard } from '../../components/ui/GlassCard';
-import { Button } from '../../components/ui/Button';
-import { Badge } from '../../components/ui/Badge';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Clock, ShoppingBag, Bell, CheckCircle2 } from 'lucide-react';
 
-export const StallOrders = () => {
-  const orders = [
-    { id: '101', item: 'ข้าวแกงเนื้อ + ไข่ดาว', note: 'ไม่เผ็ด', time: '2m ago', status: 'pending', price: 55 },
-    { id: '102', item: 'หมูกระเทียมราดข้าว', note: '', time: '5m ago', status: 'preparing', price: 45 },
-    { id: '104', item: 'ต้มยำกุ้งน้ำข้น', note: 'ใส่ถุง', time: '1m ago', status: 'pending', price: 80 },
-  ];
+export const StallOrders = ({ stallOrders = [], setStallOrders }) => {
+  const activeOrders = stallOrders.filter(o => o.status !== 'completed' && o.status !== 'cancelled');
+  const pastOrders = stallOrders.filter(o => o.status === 'completed' || o.status === 'cancelled');
+
+  const updateStatus = (id, nextStatus) => {
+    setStallOrders(prev => prev.map(o => 
+      o.id === id ? { ...o, status: nextStatus } : o
+    ));
+  };
+
+  const addDemoOrder = () => {
+    const items = [
+      { name: 'ข้าวมันไก่', price: 55, emoji: '🍗' },
+      { name: 'ก๋วยเตี๋ยวเรือ', price: 40, emoji: '🍜' },
+      { name: 'ข้าวแกงกะหรี่', price: 60, emoji: '🍛' }
+    ];
+    const randomItem = items[Math.floor(Math.random() * items.length)];
+    const newOrder = {
+      id: `ORD-${Date.now().toString().slice(-4)}`,
+      items: [{ ...randomItem, qty: 1 }],
+      total: randomItem.price,
+      status: 'pending',
+      timestamp: new Date().toLocaleTimeString()
+    };
+    setStallOrders(prev => [newOrder, ...prev]);
+  };
 
   return (
-    <div className="flex flex-col gap-8 max-w-6xl mx-auto">
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
-        
-        {/* New Orders Column */}
-        <div className="flex flex-col gap-4">
-          <header className="flex justify-between items-center px-2">
-            <h3 className="text-xl font-black text-white flex items-center gap-3 uppercase tracking-tight">
-              ออเดอร์ใหม่ <Badge status="reserved" className="scale-110">2</Badge>
-            </h3>
-            <button className="text-[10px] font-black text-gray-500 hover:text-blue-400 uppercase tracking-widest transition-colors">
-              Auto-Accept: ON
-            </button>
-          </header>
-
-          <div className="flex flex-col gap-4">
-            <AnimatePresence>
-              {orders.filter(o => o.status === 'pending').map(order => (
-                <motion.div 
-                   key={order.id} 
-                   layout 
-                   initial={{ opacity: 0, scale: 0.9, y: 10 }} 
-                   animate={{ opacity: 1, scale: 1, y: 0 }}
-                   className="relative"
-                >
-                  <GlassCard className="border-l-4 border-l-amber-500 overflow-hidden bg-[#1a1d2e] shadow-2xl hover:border-l-blue-500 transition-colors">
-                    <div className="flex justify-between items-start mb-4">
-                      <div className="flex items-center gap-3">
-                         <div className="w-10 h-10 rounded-xl bg-amber-500/10 flex items-center justify-center text-amber-500 font-black border border-amber-500/20">
-                            #{order.id}
-                         </div>
-                         <span className="text-[10px] text-gray-400 font-black uppercase tracking-widest leading-none drop-shadow-sm">{order.time}</span>
-                      </div>
-                      <div className="text-lg font-black text-white tracking-tighter">฿{order.price}</div>
-                    </div>
-
-                    <h4 className="text-xl font-black text-white mb-2 leading-tight tracking-tight uppercase">{order.item}</h4>
-                    {order.note && (
-                      <div className="inline-flex items-center gap-2 bg-red-500/10 text-red-400 text-[10px] font-black uppercase tracking-widest px-3 py-1.5 rounded-lg border border-red-500/20 mb-4">
-                        <Bell size={12} className="animate-pulse" /> {order.note}
-                      </div>
-                    )}
-
-                    <div className="flex gap-3 mt-2">
-                      <Button className="flex-1 py-3 text-xs font-black uppercase tracking-widest shadow-blue-500/20 border border-blue-500/30">Accept Order</Button>
-                      <Button variant="ghost" className="w-12 h-12 !p-0 rounded-xl border border-white/5 bg-white/5 hover:bg-red-500/10 hover:text-red-500 transition-all text-gray-500">
-                         <X size={20} />
-                      </Button>
-                    </div>
-                  </GlassCard>
-                </motion.div>
-              ))}
-            </AnimatePresence>
-          </div>
+    <div className="flex flex-col h-full bg-kg-dark text-kg-green-p font-th">
+      {/* Top Controls */}
+      <div className="flex justify-between items-center mb-6 px-1">
+        <div>
+          <div className="font-en font-extrabold text-2xl leading-none italic uppercase">Order Board</div>
+          <div className="text-[10px] text-kg-green-p/40 font-en tracking-[0.2em] uppercase mt-1">Live Management</div>
         </div>
+        <button 
+          onClick={addDemoOrder}
+          className="px-4 py-2 bg-kg-green text-white rounded-xl text-[10px] font-bold uppercase tracking-widest hover:bg-kg-green-l transition-all shadow-lg"
+        >
+          + จำลองออเดอร์ใหม่
+        </button>
+      </div>
 
-        {/* Preparing Orders Column */}
-        <div className="flex flex-col gap-4">
-          <header className="flex justify-between items-center px-2">
-            <h3 className="text-xl font-black text-white flex items-center gap-3 uppercase tracking-tight">
-              กำลังจัดเตรียม <Badge status="preparing" className="scale-110">1</Badge>
-            </h3>
-            <div className="flex items-center gap-3">
-              <div className="w-2 h-2 rounded-full bg-blue-500 animate-pulse"></div>
-              <span className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Processing...</span>
-            </div>
-          </header>
-
-          <div className="flex flex-col gap-4">
-            {orders.filter(o => o.status === 'preparing').map(order => (
-              <motion.div key={order.id} layout initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-                <GlassCard className="border-l-4 border-l-blue-500 opacity-90 shadow-lg p-6 bg-black/20">
-                  <div className="flex justify-between items-center mb-4">
-                    <span className="font-black text-xl text-blue-400 tracking-tighter">#{order.id}</span>
-                    <span className="text-[10px] text-gray-600 font-bold uppercase tracking-widest">{order.time}</span>
+      <div className="flex-1 grid grid-cols-1 lg:grid-cols-2 gap-6 overflow-hidden">
+        {/* Active Orders */}
+        <div className="flex flex-col gap-4 overflow-y-auto pr-2 custom-scrollbar">
+          <div className="text-[10px] text-kg-green-p/40 font-en tracking-widest uppercase mb-2 px-1">Active / กำลังดำเนินการ</div>
+          <AnimatePresence mode="popLayout">
+            {activeOrders.map(order => (
+              <motion.div 
+                key={order.id}
+                layout
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.95, y: -20 }}
+                className={`bg-kg-card border rounded-3xl p-5 mb-2 relative overflow-hidden transition-all ${
+                  order.status === 'ready' ? 'border-kg-gold shadow-[0_0_20px_rgba(201,162,39,0.15)]' : 'border-kg-green/15'
+                }`}
+              >
+                {order.status === 'ready' && (
+                  <div className="absolute top-0 right-0 px-3 py-1 bg-kg-gold text-black text-[9px] font-black uppercase tracking-tighter rounded-bl-xl font-en">Ready to Pick</div>
+                )}
+                
+                <div className="flex justify-between items-start mb-4">
+                  <div>
+                    <div className="font-en font-extrabold text-kg-green-l italic tracking-tight mb-0.5">#{order.id}</div>
+                    <div className="text-sm font-bold">{order.items.map(i => `${i.name} x${i.qty}`).join(', ')}</div>
                   </div>
-                  <h4 className="text-xl font-black text-gray-300 mb-6 leading-tight tracking-tight uppercase">{order.item}</h4>
-                  
-                  <Button variant="secondary" className="w-full py-3.5 text-xs font-black uppercase tracking-widest border-emerald-500/20 text-emerald-500 bg-emerald-500/5 hover:bg-emerald-500 hover:text-white transition-all shadow-lg shadow-emerald-500/10 group">
-                    <CheckCircle2 size={16} className="group-hover:scale-110 transition-transform" /> 
-                    อาหารเสร็จแล้ว (แจ้งคนรับ)
-                  </Button>
-                </GlassCard>
+                  <div className="font-en font-black text-lg">฿{order.total}</div>
+                </div>
+
+                <div className="flex gap-2">
+                  {order.status === 'pending' && (
+                    <button onClick={() => updateStatus(order.id, 'preparing')} className="flex-1 py-2.5 bg-kg-green text-white rounded-xl text-[10px] font-bold uppercase tracking-widest hover:bg-kg-green-l transition-all">รับออเดอร์ (Accept)</button>
+                  )}
+                  {order.status === 'preparing' && (
+                    <button onClick={() => updateStatus(order.id, 'ready')} className="flex-1 py-2.5 bg-kg-gold text-black rounded-xl text-[10px] font-bold uppercase tracking-widest hover:bg-kg-gold-l transition-all">ทำเสร็จแล้ว (Ready)</button>
+                  )}
+                  {order.status === 'ready' && (
+                    <button onClick={() => updateStatus(order.id, 'completed')} className="flex-1 py-2.5 bg-kg-green-l text-white rounded-xl text-[10px] font-bold uppercase tracking-widest hover:bg-kg-green transition-all">เสร็จสิ้น (Done)</button>
+                  )}
+                  <button onClick={() => updateStatus(order.id, 'cancelled')} className="px-4 py-2.5 bg-kg-surface border border-kg-green/10 text-red-400/50 hover:text-red-400 rounded-xl text-[10px] font-bold uppercase transition-all">ยกเลิก</button>
+                </div>
               </motion.div>
             ))}
-          </div>
+            {activeOrders.length === 0 && (
+              <div className="text-center py-20 opacity-20 italic text-kg-green-p/50">No active orders</div>
+            )}
+          </AnimatePresence>
+        </div>
+
+        {/* Past Orders */}
+        <div className="hidden lg:flex flex-col gap-4 overflow-y-auto pr-2 custom-scrollbar opacity-40 grayscale-[0.5]">
+          <div className="text-[10px] text-kg-green-p/40 font-en tracking-widest uppercase mb-2 px-1">Completed / ประวัติ</div>
+          {pastOrders.map(order => (
+            <div key={order.id} className="bg-kg-surface/50 border border-kg-green/10 rounded-2xl p-4 flex justify-between items-center mb-1">
+               <div className="flex items-center gap-3">
+                  <div className="font-en font-extrabold text-xs italic text-kg-green-p/40">#{order.id}</div>
+                  <div className="text-xs font-medium">{order.items[0]?.name}...</div>
+               </div>
+               <div className={`text-[9px] font-bold uppercase tracking-widest p-1 px-2 rounded-md ${order.status === 'completed' ? 'bg-kg-green/10 text-kg-green-l' : 'bg-red-500/10 text-red-400'}`}>
+                 {order.status === 'completed' ? 'SUCCESS' : 'VOID'}
+               </div>
+            </div>
+          ))}
         </div>
       </div>
     </div>
   );
 };
-
-const X = ({ size }) => <span style={{fontSize: size}} className="font-bold">×</span>;

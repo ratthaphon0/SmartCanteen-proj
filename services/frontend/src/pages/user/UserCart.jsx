@@ -1,74 +1,105 @@
 import React from 'react';
-import { GlassCard } from '../../components/ui/GlassCard';
-import { Button } from '../../components/ui/Button';
-import { motion } from 'framer-motion';
-import { ShoppingBag, X, Plus, Minus, CreditCard, ArrowRight } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
 
-export const UserCart = () => {
+export const UserCart = ({ cart, setCart, setStallOrders }) => {
+  const navigate = useNavigate();
+
+  const updateQty = (name, delta) => {
+    setCart(prev => prev.map(item => 
+      item.name === name ? { ...item, qty: Math.max(1, item.qty + delta) } : item
+    ));
+  };
+
+  const removeItem = (name) => {
+    setCart(prev => prev.filter(item => item.name !== name));
+  };
+
+  const total = cart.reduce((sum, item) => sum + (item.price * item.qty), 0);
+
+  const handleCheckout = () => {
+    if (cart.length === 0) return;
+    
+    // Add to shared stall orders
+    const newOrder = {
+      id: `ORD-${Date.now().toString().slice(-4)}`,
+      items: [...cart],
+      total,
+      status: 'pending',
+      timestamp: new Date().toLocaleTimeString()
+    };
+    
+    setStallOrders(prev => [newOrder, ...prev]);
+    setCart([]);
+    navigate('/user/queue');
+  };
+
   return (
-    <motion.div 
-      initial={{ opacity: 0, x: -20 }}
-      animate={{ opacity: 1, x: 0 }}
-      className="flex flex-col gap-6 h-full min-h-[500px]"
-    >
-      <header className="mb-2">
-        <h1 className="text-3xl font-black text-white tracking-tight leading-none mb-2">ตะกร้าของฉัน</h1>
-        <p className="text-gray-500 font-medium text-xs uppercase tracking-widest leading-none">Review and Checkout</p>
-      </header>
-
-      <div className="flex flex-col gap-4 overflow-y-auto max-h-[400px] hide-scrollbar">
-        {[1].map((i) => (
-          <GlassCard key={i} className="flex flex-col gap-4 p-5 border-white/5 relative group">
-            <button className="absolute top-4 right-4 p-1.5 bg-black/20 rounded-lg text-red-400 opacity-0 group-hover:opacity-100 transition-opacity">
-              <X size={14} />
-            </button>
-            
-            <div className="flex gap-5">
-              <div className="w-16 h-16 rounded-2xl bg-white/5 flex items-center justify-center text-3xl border border-white/5">
-                🍗
-              </div>
-              <div className="flex flex-col justify-center">
-                <h3 className="font-bold text-white text-lg tracking-tight uppercase leading-none">ข้าวมันไก่ผสม (พิเศษ)</h3>
-                <div className="flex items-center gap-2 mt-2 text-xs font-bold text-gray-500 uppercase tracking-widest">
-                  <ShoppingBag size={12} className="text-blue-500" /> ข้าวมันไก่เจ๊สม
-                </div>
-              </div>
-            </div>
-
-            <div className="flex justify-between items-center pt-4 border-t border-white/5">
-              <div className="flex items-center gap-4 bg-black/40 px-3 py-2 rounded-xl border border-white/5">
-                <button className="text-gray-500 hover:text-white transition-colors"><Minus size={16} /></button>
-                <span className="text-sm font-black text-white w-4 text-center">1</span>
-                <button className="text-blue-500 hover:text-blue-400 transition-colors"><Plus size={16} /></button>
-              </div>
-              <div className="text-2xl font-black text-white tracking-tighter">
-                ฿50
-              </div>
-            </div>
-          </GlassCard>
-        ))}
-      </div>
-      
-      {/* Checkout Summary Container */}
-      <div className="mt-auto pt-6 border-t border-white/5 bg-gradient-to-t from-[#141624] to-transparent -mx-5 px-5">
-        <div className="flex justify-between items-center mb-6">
-          <div className="flex flex-col">
-            <span className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Total Amount</span>
-            <span className="text-3xl font-black text-white tracking-tighter">฿50</span>
-          </div>
-          <div className="flex flex-col items-end">
-             <span className="text-[10px] font-black text-emerald-500 uppercase tracking-widest">PromptPay Active</span>
-             <span className="text-gray-600 text-[9px] font-bold">+ VAT 7% Included</span>
-          </div>
+    <div className="flex flex-col h-full bg-kg-dark text-kg-green-p font-th">
+      <div className="flex justify-between items-end mb-6 px-1">
+        <div>
+          <div className="font-en font-extrabold text-2xl leading-none italic">ตะกร้าของคุณ</div>
+          <div className="text-[10px] text-kg-green-p/40 font-en tracking-[0.2em] uppercase mt-1">Review Items</div>
         </div>
-
-        <Button className="w-full py-5 text-base font-black shadow-2xl shadow-blue-500/30 flex items-center justify-center gap-3 bg-gradient-to-r from-blue-600 to-indigo-700 border-none group">
-          <CreditCard size={20} />
-          ชำระเงินตอนนี้
-          <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
-        </Button>
-        <p className="text-center text-[9px] mt-4 text-gray-600 font-bold uppercase tracking-widest">Secure payment via University Gateway</p>
+        <div className="text-xs font-bold text-kg-green-l">{cart.length} รายการ</div>
       </div>
-    </motion.div>
+
+      <div className="flex-1 overflow-y-auto space-y-3 pb-6">
+        <AnimatePresence mode="popLayout">
+          {cart.length === 0 ? (
+            <div className="bg-kg-card border border-dashed border-kg-green/20 rounded-2xl p-10 text-center flex flex-col items-center gap-4">
+              <div className="text-5xl opacity-20 italic">🛒</div>
+              <div className="text-sm font-bold text-kg-green-p/30 uppercase tracking-widest font-en">ตะกร้าว่างเปล่า</div>
+            </div>
+          ) : (
+            cart.map((item, i) => (
+              <motion.div 
+                key={item.name}
+                layout
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: 20 }}
+                className="bg-kg-card border border-kg-green/15 rounded-2xl p-4 flex items-center gap-4 group"
+              >
+                <div className="w-14 h-14 rounded-xl bg-kg-surface border border-kg-green/10 flex items-center justify-center text-3xl">{item.emoji}</div>
+                <div className="flex-1">
+                  <div className="font-bold text-sm mb-0.5">{item.name}</div>
+                  <div className="font-en font-extrabold text-kg-green-l text-xs italic">฿{item.price}</div>
+                </div>
+                <div className="flex items-center gap-2 bg-kg-surface border border-kg-green/10 rounded-lg p-1">
+                  <button onClick={() => updateQty(item.name, -1)} className="w-6 h-6 flex items-center justify-center text-xs hover:bg-kg-green/20 rounded">-</button>
+                  <span className="w-4 text-center font-en font-bold text-xs">{item.qty}</span>
+                  <button onClick={() => updateQty(item.name, 1)} className="w-6 h-6 flex items-center justify-center text-xs hover:bg-kg-green/20 rounded">+</button>
+                </div>
+                <button onClick={() => removeItem(item.name)} className="text-kg-green-p/20 hover:text-red-400 p-1">❌</button>
+              </motion.div>
+            ))
+          )}
+        </AnimatePresence>
+      </div>
+
+      {cart.length > 0 && (
+        <div className="border-t border-kg-green/15 pt-6 pb-2">
+          <div className="flex justify-between items-center mb-6">
+            <div>
+              <div className="text-[10px] text-kg-green-p/40 font-en tracking-widest uppercase">ยอดรวมทั้งหมด</div>
+              <div className="font-en text-4xl font-extrabold text-kg-gold-l italic">฿{total}</div>
+            </div>
+            <div className="text-right">
+              <div className="text-[9px] text-kg-green-p/30 font-en uppercase tracking-tighter mb-1">Payment Method</div>
+              <div className="px-2.5 py-1 bg-kg-green-l/10 border border-kg-green-l/25 rounded-full text-[10px] font-bold text-kg-green-l">📱 QR PromptPay</div>
+            </div>
+          </div>
+          
+          <button 
+            onClick={handleCheckout}
+            className="w-full py-4 bg-kg-green text-white font-bold rounded-xl text-lg shadow-[0_8px_32px_rgba(0,102,51,0.25)] hover:bg-kg-green-l transition-all active:scale-[0.98]"
+          >
+            ยืนยันการสั่งอาหาร 🚀
+          </button>
+          <div className="text-center text-[9px] text-kg-green-p/20 mt-4 uppercase tracking-[0.2em]">Transaction secured by KU Gateway</div>
+        </div>
+      )}
+    </div>
   );
 };

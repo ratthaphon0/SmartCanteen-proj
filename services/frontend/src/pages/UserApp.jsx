@@ -127,9 +127,9 @@ function UserApp() {
 
   if (!isAuthenticated) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-900">
+      <div className="min-h-screen flex items-center justify-center bg-[#051a10]">
         <motion.div
-          className="bg-gray-800 p-8 rounded-lg border border-gray-700 w-full max-w-md"
+          className="bg-[#0a2a1b] p-8 rounded-2xl border border-[#006633]/20 w-full max-w-md shadow-2xl"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
         >
@@ -141,7 +141,7 @@ function UserApp() {
                 type="text"
                 value={loginForm.username}
                 onChange={(e) => setLoginForm(prev => ({ ...prev, username: e.target.value }))}
-                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 bg-[#051a10] border border-[#006633]/30 rounded-md focus:outline-none focus:ring-2 focus:ring-[#FFD700]/50 text-white"
                 required
               />
             </div>
@@ -151,14 +151,14 @@ function UserApp() {
                 type="password"
                 value={loginForm.password}
                 onChange={(e) => setLoginForm(prev => ({ ...prev, password: e.target.value }))}
-                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 bg-[#051a10] border border-[#006633]/30 rounded-md focus:outline-none focus:ring-2 focus:ring-[#FFD700]/50 text-white"
                 required
               />
             </div>
             {loginError && <p className="text-red-500 text-sm">{loginError}</p>}
             <button
               type="submit"
-              className="w-full bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded-md font-medium transition-colors"
+              className="w-full bg-[#006633] hover:bg-[#004d26] px-4 py-2 rounded-md font-bold text-white transition-all shadow-lg shadow-[#006633]/20"
             >
               เข้าสู่ระบบ
             </button>
@@ -195,10 +195,10 @@ function UserApp() {
         ].map(tab => (
           <button
             key={tab.key}
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+            className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${
               activeTab === tab.key
-                ? 'bg-blue-600 text-white'
-                : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                ? 'bg-[#006633] text-white shadow-lg shadow-[#006633]/20 border border-[#FFD700]/30'
+                : 'bg-[#0a2a1b] text-gray-400 hover:bg-[#006633]/20 border border-white/5'
             }`}
             onClick={() => setActiveTab(tab.key)}
           >
@@ -215,10 +215,10 @@ function UserApp() {
             {(stalls.length > 0 ? stalls : DEMO_STALLS).map(stall => (
               <motion.button
                 key={stall.stall_id}
-                className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
+                className={`px-4 py-2 rounded-full text-xs font-bold uppercase tracking-wider transition-all border ${
                   selectedStall?.stall_id === stall.stall_id
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                    ? 'bg-[#FFD700] text-[#051a10] border-[#FFD700]'
+                    : 'bg-[#0a2a1b] text-[#FFD700] border-[#FFD700]/20 hover:bg-[#FFD700]/10'
                 }`}
                 onClick={() => selectStallHandler(stall)}
                 whileHover={{ scale: 1.05 }}
@@ -235,7 +235,7 @@ function UserApp() {
             {(menu.length > 0 ? menu : DEMO_MENU).map(item => (
               <motion.div
                 key={item.menu_id}
-                className="bg-gray-800 border border-gray-700 rounded-lg p-4 hover:border-gray-600 transition-colors"
+                className="bg-[#0a2a1b] border border-[#006633]/20 rounded-xl p-5 hover:border-[#FFD700]/30 transition-all shadow-xl group"
                 whileHover={{ scale: 1.02 }}
               >
                 <div className="flex justify-between items-start mb-3">
@@ -294,9 +294,9 @@ function UserApp() {
                 <span className="text-xl font-bold text-green-500">฿{getTotal()}</span>
               </div>
               <motion.button
-                className="w-full bg-blue-600 hover:bg-blue-700 px-6 py-3 rounded-lg font-semibold text-lg transition-colors"
+                className="w-full bg-[#006633] hover:bg-[#004d26] px-6 py-4 rounded-xl font-black text-white text-lg transition-all shadow-2xl shadow-[#006633]/30 border border-[#FFD700]/20"
                 onClick={placeOrder}
-                whileHover={{ scale: 1.02 }}
+                whileHover={{ scale: 1.02, y: -2 }}
                 whileTap={{ scale: 0.98 }}
               >
                 🛒 สั่งเลย — ฿{getTotal()}

@@ -1,127 +1,104 @@
 import React from 'react';
-import { GlassCard } from '../../components/ui/GlassCard';
+import { motion } from 'framer-motion';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import { Shield, Zap, Database, TrendingUp } from 'lucide-react';
 
 export const AdminAnalytics = () => {
-  const data = [
-    { time: '11:00', occupancy: 20 },
-    { time: '11:30', occupancy: 45 },
-    { time: '12:00', occupancy: 85 },
-    { time: '12:30', occupancy: 95 },
-    { time: '13:00', occupancy: 60 },
-    { time: '13:30', occupancy: 30 },
+  const chartData = [
+    { time: '08:00', val: 30 },
+    { time: '10:00', val: 65 },
+    { time: '12:00', val: 95 },
+    { time: '14:00', val: 40 },
+    { time: '16:00', val: 20 },
   ];
 
   return (
-    <div className="flex flex-col gap-6 max-w-7xl mx-auto pb-10">
-      <header className="flex justify-between items-end mb-4">
+    <div className="flex flex-col h-full bg-kg-dark text-kg-green-p font-th">
+      {/* Header */}
+      <div className="flex justify-between items-end mb-8 px-1">
         <div>
-          <h1 className="text-3xl font-black text-white tracking-tight mb-2 uppercase italic">Global Analytics</h1>
-          <p className="text-gray-500 font-medium text-[10px] uppercase tracking-widest leading-none">Smart Canteen Infrastructure Monitoring</p>
+          <div className="font-en font-extrabold text-2xl leading-none italic uppercase">System Analytics</div>
+          <div className="text-[10px] text-kg-green-p/40 font-en tracking-[0.2em] uppercase mt-1">Infrastructure Monitoring</div>
         </div>
-        <div className="flex items-center gap-3">
-           <div className="flex items-center gap-2 text-[10px] font-black text-emerald-500 uppercase tracking-widest bg-emerald-500/10 px-3 py-1.5 rounded-lg border border-emerald-500/20 shadow-lg shadow-emerald-500/5">
-              <Zap size={14} fill="currentColor" /> System Healthy
-           </div>
+        <div className="px-3 py-1.5 bg-kg-green-l/10 border border-kg-green-l/20 rounded-full flex items-center gap-2">
+          <span className="w-1.5 h-1.5 rounded-full bg-kg-green-l animate-pulse"></span>
+          <span className="text-[10px] font-bold text-kg-green-l uppercase tracking-widest font-en">System Healthy</span>
         </div>
-      </header>
-
-      {/* KPI Section */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-        <GlassCard className="border-white/5 bg-[#1a1d2e] p-6 hover:border-blue-500/30 transition-all group">
-          <div className="text-gray-500 text-[9px] font-black uppercase tracking-[0.2em] mb-2">Real-time Occupancy</div>
-          <div className="text-4xl font-black text-white tracking-tighter group-hover:scale-105 transition-transform origin-left">78%</div>
-          <div className="mt-3 flex items-center gap-1.5 text-blue-500 text-[10px] font-bold uppercase tracking-widest bg-blue-500/10 px-2 py-1 rounded w-fit">
-             Peak Hour active
-          </div>
-        </GlassCard>
-
-        <GlassCard className="border-white/5 bg-[#1a1d2e] p-6 hover:border-purple-500/30 transition-all group">
-          <div className="text-gray-500 text-[9px] font-black uppercase tracking-[0.2em] mb-2">Total Orders today</div>
-          <div className="text-4xl font-black text-purple-400 tracking-tighter group-hover:scale-105 transition-transform origin-left">1,245</div>
-          <div className="mt-3 flex items-center gap-1.5 text-emerald-500 text-[10px] font-bold uppercase tracking-widest bg-emerald-500/10 px-2 py-1 rounded w-fit text-shadow-glow">
-             +12% vs Yesterday
-          </div>
-        </GlassCard>
-
-        <GlassCard className="border-white/5 bg-[#1a1d2e] p-6 hover:border-orange-500/30 transition-all group">
-          <div className="text-gray-500 text-[9px] font-black uppercase tracking-[0.2em] mb-2">Camera Status</div>
-          <div className="text-4xl font-black text-white tracking-tighter group-hover:scale-105 transition-transform origin-left">3/3</div>
-          <div className="mt-3 flex items-center gap-1.5 text-emerald-500 text-[10px] font-bold uppercase tracking-widest bg-emerald-500/10 px-2 py-1 rounded w-fit">
-             Online & Tracking
-          </div>
-        </GlassCard>
-
-        <GlassCard className="border-white/5 bg-[#1a1d2e] p-6 hover:border-blue-400/30 transition-all group overflow-hidden relative">
-          <div className="absolute top-0 right-0 p-4 opacity-[0.03] group-hover:opacity-[0.08] transition-opacity">
-             <Database size={80} />
-          </div>
-          <div className="text-gray-500 text-[9px] font-black uppercase tracking-[0.2em] mb-2">DB Latency</div>
-          <div className="text-4xl font-black text-blue-400 tracking-tighter group-hover:scale-105 transition-transform origin-left">14ms</div>
-          <div className="mt-3 text-[10px] font-bold text-gray-400 uppercase tracking-widest bg-white/5 px-2 py-1 rounded w-fit">
-             Optimal Performance
-          </div>
-        </GlassCard>
       </div>
 
-      {/* Main Stats Chart */}
-      <GlassCard className="h-[500px] flex flex-col p-8 bg-[#1a1d2e] border-white/5 shadow-2xl relative shadow-black/80 overflow-hidden">
-        <div className="absolute top-0 left-0 w-full h-[60%] bg-gradient-to-b from-blue-600/[0.03] to-transparent pointer-events-none"></div>
+      {/* KPI Cards */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+        {[
+          { label: 'Real-time Load', val: '78%', trend: '+5%', color: 'text-kg-green-l' },
+          { label: 'Total Orders', val: '1,245', trend: '+12%', color: 'text-kg-gold-l' },
+          { label: 'AI Nodes', val: '3/3', trend: 'Stable', color: 'text-white' },
+          { label: 'DB Latency', val: '14ms', trend: 'Optimal', color: 'text-kg-gold-l' }
+        ].map((kpi, i) => (
+          <div key={i} className="bg-kg-card border border-kg-green/15 rounded-3xl p-6 shadow-xl group hover:border-kg-green-l/30 transition-all">
+            <div className="text-[10px] font-en tracking-widest uppercase text-kg-green-p/30 mb-3">{kpi.label}</div>
+            <div className={`font-en text-4xl font-extrabold italic mb-4 ${kpi.color}`}>{kpi.val}</div>
+            <div className="inline-flex px-2 py-0.5 rounded-md text-[9px] font-bold bg-kg-green-l/10 text-kg-green-l border border-kg-green-l/20 uppercase">
+              {kpi.trend}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Main Chart Card */}
+      <div className="flex-1 bg-kg-card border border-kg-green/15 rounded-[32px] p-8 shadow-2xl overflow-hidden relative group mb-2">
+        <div className="absolute top-0 right-0 p-10 text-[120px] opacity-[0.03] italic font-en font-black select-none pointer-events-none group-hover:scale-110 transition-transform">DATA</div>
         
-        <div className="flex justify-between items-center mb-10 relative z-10">
-           <h3 className="text-xl font-black text-white tracking-tight uppercase italic flex items-center gap-4">
-              <TrendingUp size={24} className="text-blue-500" /> Canteen Traffic Flow
-           </h3>
-           <div className="flex gap-4">
-              <div className="flex items-center gap-2 text-[10px] font-black text-gray-500 uppercase tracking-widest">
-                 <div className="w-2.5 h-2.5 rounded-full border border-blue-500/50 bg-blue-500/20 animate-pulse shadow-glow-blue"></div> Live Occupancy
-              </div>
-           </div>
+        <div className="flex justify-between items-center mb-10">
+          <div>
+            <h3 className="font-en text-xl font-extrabold italic uppercase tracking-tight">Traffic Flow Analysis</h3>
+            <p className="text-[10px] text-kg-green-p/30 font-en uppercase tracking-widest mt-1">Live AI Prediction Stream</p>
+          </div>
+          <div className="flex gap-4">
+             <div className="flex items-center gap-2"><div className="w-2.5 h-2.5 rounded-full bg-kg-green-l"></div> <span className="text-[10px] font-bold uppercase font-en opacity-40">Occupancy</span></div>
+          </div>
         </div>
 
-        <div className="flex-1 w-full relative h-[350px] pr-4">
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={data} margin={{ top: 10, right: 0, left: -20, bottom: 0 }}>
-                  <defs>
-                    <linearGradient id="colorOcc" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.4}/>
-                        <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#2d3148" />
-                  <XAxis 
-                    dataKey="time" 
-                    stroke="#4b5563" 
-                    tick={{fontSize: 11, fontWeight: 900}} 
-                    axisLine={false} 
-                    tickLine={false} 
-                    dy={15} 
-                    className="uppercase tracking-widest"
-                  />
-                  <YAxis 
-                    stroke="#4b5563" 
-                    tick={{fontSize: 11, fontWeight: 900}} 
-                    axisLine={false} 
-                    tickLine={false} 
-                  />
-                  <Tooltip 
-                    contentStyle={{ borderRadius: '16px', border: '1px solid rgba(255,255,255,0.1)', backgroundColor: '#1a1d2e', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.4)', padding: '16px' }} 
-                    itemStyle={{ color: '#fff', fontWeight: '900', letterSpacing: '-0.025em', textTransform: 'uppercase' }}
-                  />
-                  <Area 
-                    type="monotone" 
-                    dataKey="occupancy" 
-                    stroke="#3b82f6" 
-                    strokeWidth={4} 
-                    fillOpacity={1} 
-                    fill="url(#colorOcc)" 
-                    animationDuration={2000}
-                  />
-              </AreaChart>
-            </ResponsiveContainer>
+        <div className="h-[300px] w-full">
+          <ResponsiveContainer width="100%" height="100%">
+            <AreaChart data={chartData} margin={{ top: 10, right: 0, left: -20, bottom: 0 }}>
+              <defs>
+                <linearGradient id="kgGradient" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#00a651" stopOpacity={0.3}/>
+                  <stop offset="95%" stopColor="#00a651" stopOpacity={0}/>
+                </linearGradient>
+              </defs>
+              <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,166,81,0.05)" vertical={false} />
+              <XAxis 
+                dataKey="time" 
+                axisLine={false} 
+                tickLine={false} 
+                tick={{ fill: '#6fbd8a', fontSize: 10, fontWeight: 700, fontFamily: 'Syne' }}
+                dy={15}
+              />
+              <YAxis 
+                axisLine={false} 
+                tickLine={false} 
+                tick={{ fill: '#6fbd8a', fontSize: 10, fontWeight: 700, fontFamily: 'Syne' }}
+              />
+              <Tooltip 
+                contentStyle={{ 
+                  background: '#071910', 
+                  border: '1px solid rgba(0,166,81,0.2)', 
+                  borderRadius: '16px',
+                  boxShadow: '0 10px 30px rgba(0,0,0,0.5)'
+                }}
+              />
+              <Area 
+                type="monotone" 
+                dataKey="val" 
+                stroke="#00a651" 
+                strokeWidth={4} 
+                fillOpacity={1} 
+                fill="url(#kgGradient)" 
+              />
+            </AreaChart>
+          </ResponsiveContainer>
         </div>
-      </GlassCard>
+      </div>
     </div>
   );
 };

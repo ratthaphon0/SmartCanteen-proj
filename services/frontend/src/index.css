@@ -1,52 +1,75 @@
 @import "tailwindcss";
 
-@layer base {
-  :root {
-    --primary: 239 68 68; /* example red, will use tailwind colors mainly */
-    --bg-page: #0f1117;
+@theme {
+  --color-kg-green: #006633;
+  --color-kg-green-d: #004d26;
+  --color-kg-green-l: #00a651;
+  --color-kg-green-p: #e6f4ed;
+  --color-kg-gold: #c9a227;
+  --color-kg-gold-l: #f0c040;
+  --color-kg-dark: #030f07;
+  --color-kg-card: #071910;
+  --color-kg-surface: #0c2214;
+  
+  --font-th: "IBM Plex Sans Thai", sans-serif;
+  --font-en: "Syne", sans-serif;
+  
+  --animate-blink: blink 1s infinite;
+  --animate-pulse-slow: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  --animate-fade-in: fade-in 0.3s ease-out;
+  --animate-slide-up: slide-up 0.3s ease-out;
+  
+  @keyframes blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.3; }
   }
-
-  body {
-    @apply bg-[#0f1117] text-[#e8eaf0] antialiased;
-    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  @keyframes fade-in {
+    from { opacity: 0; }
+    to { opacity: 1; }
   }
-
-  ::selection {
-    @apply bg-blue-500/30;
+  @keyframes slide-up {
+    from { transform: translateY(0.5rem); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
   }
 }
 
-@layer utilities {
-  .glass {
-    @apply bg-white/5 backdrop-blur-md border border-white/10 shadow-xl;
+@font-face {
+  font-family: 'Syne';
+  src: url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&display=swap');
+}
+
+@layer base {
+  html {
+    @apply font-th antialiased text-kg-green-p bg-kg-dark;
+    -webkit-tap-highlight-color: transparent;
   }
   
-  .glass-hover {
-    @apply transition-all duration-300;
-  }
-  .glass-hover:hover {
-    @apply bg-white/10;
+  .font-en {
+    @apply font-en;
   }
 
-  .text-gradient {
-    @apply bg-gradient-to-r from-blue-400 to-purple-500 bg-clip-text text-transparent;
+  ::-webkit-scrollbar {
+    @apply w-1 h-1;
+  }
+  
+  ::-webkit-scrollbar-track {
+    @apply bg-transparent;
+  }
+  
+  ::-webkit-scrollbar-thumb {
+    @apply bg-kg-green/25 rounded-sm;
   }
 }
 
-/* Custom Scrollbar */
-::-webkit-scrollbar {
-  width: 6px;
+@layer components {
+  .page {
+    @apply min-h-screen pt-14 pb-20;
+    display: none;
+  }
+  
+  .page.active {
+    @apply block animate-fade-in animate-slide-up;
+  }
 }
 
-::-webkit-scrollbar-track {
-  background: #0f1117;
-}
-
-::-webkit-scrollbar-thumb {
-  background: #2d3148;
-  border-radius: 3px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: #3f4461;
-}
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@300;400;500;600;700&display=swap');

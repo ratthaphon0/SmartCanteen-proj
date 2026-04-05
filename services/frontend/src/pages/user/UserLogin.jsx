@@ -1,55 +1,124 @@
-import React from 'react';
-import { GlassCard } from '../../components/ui/GlassCard';
-import { Button } from '../../components/ui/Button';
+import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 
-export const UserLogin = () => {
-  return (
-    <div className="min-h-screen bg-[#0f1117] flex flex-col justify-center items-center p-6 sm:p-12 relative overflow-hidden">
-      {/* Decorative Orbs */}
-      <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] rounded-full bg-blue-600/10 blur-[120px]"></div>
-      <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] rounded-full bg-purple-600/10 blur-[120px]"></div>
+export const UserLogin = ({ setUserRole }) => {
+  const [role, setRole] = useState('user'); // 'user' or 'admin'
+  const [userId, setUserId] = useState('6210012345');
+  const [password, setPassword] = useState('1234');
+  const navigate = useNavigate();
 
+  const handleToggleRole = (newRole) => {
+    setRole(newRole);
+    if (newRole === 'admin') {
+      setUserId('admin');
+      setPassword('admin');
+    } else {
+      setUserId('6210012345');
+      setPassword('1234');
+    }
+  };
+
+  const handleLogin = () => {
+    if (!userId || !password) return;
+    
+    // Simple mock auth logic from snippet
+    if (role === 'admin' && userId === 'admin' && password === 'admin') {
+      setUserRole('admin');
+      navigate('/admin');
+    } else if (role === 'user' && userId === 'user' || userId === '6210012345') {
+      setUserRole('user');
+      navigate('/user');
+    } else {
+      alert('❌ รหัสผิด กรุณาลองใหม่');
+    }
+  };
+
+  const guestLogin = () => {
+    setUserRole('user');
+    navigate('/user');
+  };
+
+  return (
+    <div className="min-h-screen bg-kg-dark flex items-center justify-center p-6 bg-[radial-gradient(ellipse_at_50%_0%,rgba(0,102,51,0.18)_0%,transparent_70%)]">
       <motion.div 
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="w-full max-w-sm z-10"
+        className="w-full max-w-sm"
       >
-        <div className="text-center mb-10">
-          <div className="w-24 h-24 bg-blue-500/10 rounded-3xl flex items-center justify-center mx-auto mb-6 border border-white/10 shadow-2xl overflow-hidden group">
-            <motion.span 
-              whileHover={{ rotate: [0, -10, 10, -10, 0], scale: 1.1 }}
-              className="text-5xl"
-            >
-              🍽️
-            </motion.span>
-          </div>
-          <h1 className="text-3xl font-black text-white tracking-tight mb-2">Smart Canteen</h1>
-          <p className="text-gray-500 font-medium tracking-tight">University AI-Powered System</p>
+        <div className="w-20 h-20 rounded-3xl mx-auto mb-5 flex items-center justify-center text-4xl shadow-[0_8px_32px_rgba(0,102,51,0.4)] bg-gradient-to-br from-kg-green-d to-kg-green-l">
+          🌿
+        </div>
+        
+        <h1 className="font-en text-3xl font-extrabold text-center mb-1 text-kg-green-p italic">KU Smart Canteen</h1>
+        <p className="text-[10px] uppercase tracking-[0.2em] text-kg-green-p/30 text-center mb-8 font-en">Kasetsart University · Smart Campus</p>
+
+        <div className="flex gap-2.5 mb-5">
+          <button 
+            onClick={() => handleToggleRole('user')}
+            className={`flex-1 py-3.5 text-xs font-bold rounded-xl transition-all font-en uppercase tracking-widest ${
+              role === 'user' ? 'bg-kg-green text-white shadow-[0_4px_16px_rgba(0,102,51,0.3)]' : 'bg-transparent border border-kg-green/25 text-kg-green-p/40'
+            }`}
+          >
+            🎓 นิสิต
+          </button>
+          <button 
+            onClick={() => handleToggleRole('admin')}
+            className={`flex-1 py-3.5 text-xs font-bold rounded-xl transition-all font-en uppercase tracking-widest ${
+              role === 'admin' ? 'bg-kg-gold text-black shadow-[0_4px_16px_rgba(201,162,39,0.3)] font-bold' : 'bg-transparent border border-kg-green/25 text-kg-green-p/40'
+            }`}
+          >
+            ⚙️ Admin
+          </button>
         </div>
 
-        <GlassCard className="p-8 border-white/5">
-          <div className="flex flex-col gap-6">
-            <Button className="w-full py-4 text-base font-bold shadow-2xl shadow-blue-500/20" onClick={() => window.location.href = '/user/dashboard'}>
-              Sign in with KU Auth
-            </Button>
-            
-            <div className="relative flex items-center py-2">
-              <div className="flex-grow border-t border-white/5"></div>
-              <span className="flex-shrink-0 mx-4 text-gray-600 text-[10px] font-bold uppercase tracking-[0.2em]">OR</span>
-              <div className="flex-grow border-t border-white/5"></div>
-            </div>
-            
-            <Button variant="secondary" className="w-full py-4 text-sm font-bold opacity-80 hover:opacity-100" onClick={() => window.location.href = '/user/dashboard'}>
-              Continue as Guest
-            </Button>
-          </div>
-        </GlassCard>
+        <div className="bg-kg-card border border-kg-green/20 rounded-2xl p-5 mb-3 shadow-2xl">
+          <label className="block text-[10px] font-en tracking-widest uppercase text-kg-green-p/40 mb-1.5">
+            {role === 'user' ? 'รหัสนิสิต' : 'ชื่อผู้ใช้ Admin'}
+          </label>
+          <input 
+            className="w-full bg-kg-surface border border-kg-green/20 rounded-xl px-4 py-3 text-sm text-kg-green-p outline-none focus:border-kg-green-l transition-colors placeholder-kg-green/30 mb-4 font-en"
+            type="text" 
+            value={userId}
+            onChange={(e) => setUserId(e.target.value)}
+            placeholder={role === 'user' ? '6x10xxxxx' : 'admin'}
+          />
+          
+          <label className="block text-[10px] font-en tracking-widest uppercase text-kg-green-p/40 mb-1.5">รหัสผ่าน</label>
+          <input 
+            className="w-full bg-kg-surface border border-kg-green/20 rounded-xl px-4 py-3 text-sm text-kg-green-p outline-none focus:border-kg-green-l transition-colors placeholder-kg-green/30 mb-5 font-en"
+            type="password" 
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            placeholder="••••••••"
+          />
 
-        <p className="mt-8 text-center text-[10px] text-gray-600 font-bold uppercase tracking-widest leading-loose">
-          By continuing, you agree to our<br/>
-          <span className="text-gray-400 hover:text-white cursor-pointer transition-colors underline underline-offset-4">Terms of Service</span> & <span className="text-gray-400 hover:text-white cursor-pointer transition-colors underline underline-offset-4">Privacy Policy</span>
-        </p>
+          <div className="bg-kg-green/10 border border-kg-green/20 rounded-xl px-4 py-2.5 mb-4 text-[11px] text-kg-green-p/60">
+            💡 ทดสอบ: <strong className="text-kg-green-p/80 font-en">{role === 'user' ? 'user / 1234' : 'admin / admin'}</strong>
+          </div>
+          
+          <button 
+            onClick={handleLogin}
+            className="w-full py-4 bg-kg-green text-white font-bold rounded-xl text-base shadow-[0_4px_16px_rgba(0,102,51,0.3)] hover:bg-kg-green-l transition-all active:scale-[0.97]"
+          >
+            🚀 เข้าสู่ระบบ
+          </button>
+        </div>
+
+        <div className="flex items-center gap-3 my-4">
+          <div className="flex-1 h-px bg-kg-green/15"></div>
+          <span className="text-[10px] font-en tracking-widest text-kg-green-p/30 uppercase">หรือ</span>
+          <div className="flex-1 h-px bg-kg-green/15"></div>
+        </div>
+
+        <button 
+          onClick={guestLogin}
+          className="w-full py-3.5 bg-transparent border border-kg-green/20 text-kg-green-p/60 rounded-xl font-bold hover:border-kg-green-l/40 hover:text-kg-green-p/80 transition-all text-sm uppercase tracking-wider font-en"
+        >
+          👤 เข้าใช้แบบผู้เยี่ยมชม
+        </button>
+        
+        <p className="text-center text-[11px] text-kg-green-p/20 mt-8 font-en tracking-widest uppercase italic">Kasetsart University · Smart Campus 2025</p>
       </motion.div>
     </div>
   );
