@@ -23,7 +23,7 @@ export const StallOrders = ({ stallOrders = [], setStallOrders }) => {
       items: [{ ...randomItem, qty: 1 }],
       total: randomItem.price,
       status: 'pending',
-      timestamp: new Date().toLocaleTimeString()
+      timestamp: new Date().toISOString()
     };
     setStallOrders(prev => [newOrder, ...prev]);
   };

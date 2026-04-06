@@ -45,15 +45,7 @@ function App() {
     return () => clearInterval(interval);
   }, []);
 
-  // Simulation: Add demo orders periodically
-  useEffect(() => {
-    const timer = setTimeout(() => {
-       addDemoOrder();
-       addDemoOrder();
-    }, 2000);
-    const interval = setInterval(addDemoOrder, 25000);
-    return () => { clearTimeout(timer); clearInterval(interval); };
-  }, []);
+
 
   const addDemoOrder = () => {
     const items = [
@@ -64,12 +56,11 @@ function App() {
     ];
     const item = items[Math.floor(Math.random() * items.length)];
     const newOrder = {
-      id: Math.floor(Math.random() * 900) + 100,
-      name: item.name,
-      price: item.price,
-      emoji: item.emoji,
+      id: `ORD-${Math.floor(Math.random() * 900) + 100}`,
+      items: [{ ...item, qty: 1 }],
+      total: item.price,
       status: 'pending',
-      time: 'เพิ่งสั่ง'
+      timestamp: new Date().toISOString()
     };
     setStallOrders(prev => [newOrder, ...prev]);
   };

@@ -26,7 +26,7 @@ export const UserCart = ({ cart, setCart, setStallOrders }) => {
       items: [...cart],
       total,
       status: 'pending',
-      timestamp: new Date().toLocaleTimeString()
+      timestamp: new Date().toISOString()
     };
     
     setStallOrders(prev => [newOrder, ...prev]);
