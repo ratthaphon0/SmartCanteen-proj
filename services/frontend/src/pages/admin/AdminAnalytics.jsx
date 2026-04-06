@@ -46,14 +46,14 @@ export const AdminAnalytics = () => {
       {/* Main Chart Card */}
       <div className="flex-1 bg-kg-card border border-kg-green/15 rounded-[32px] p-8 shadow-2xl overflow-hidden relative group mb-2">
         <div className="absolute top-0 right-0 p-10 text-[120px] opacity-[0.03] italic font-en font-black select-none pointer-events-none group-hover:scale-110 transition-transform">DATA</div>
-        
+
         <div className="flex justify-between items-center mb-10">
           <div>
             <h3 className="font-en text-xl font-extrabold italic uppercase tracking-tight">Traffic Flow Analysis</h3>
             <p className="text-[10px] text-kg-green-p/30 font-en uppercase tracking-widest mt-1">Live AI Prediction Stream</p>
           </div>
           <div className="flex gap-4">
-             <div className="flex items-center gap-2"><div className="w-2.5 h-2.5 rounded-full bg-kg-green-l"></div> <span className="text-[10px] font-bold uppercase font-en opacity-40">Occupancy</span></div>
+            <div className="flex items-center gap-2"><div className="w-2.5 h-2.5 rounded-full bg-kg-green-l"></div> <span className="text-[10px] font-bold uppercase font-en opacity-40">Occupancy</span></div>
           </div>
         </div>
 
@@ -62,38 +62,38 @@ export const AdminAnalytics = () => {
             <AreaChart data={chartData} margin={{ top: 10, right: 0, left: -20, bottom: 0 }}>
               <defs>
                 <linearGradient id="kgGradient" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#00a651" stopOpacity={0.3}/>
-                  <stop offset="95%" stopColor="#00a651" stopOpacity={0}/>
+                  <stop offset="5%" stopColor="#00a651" stopOpacity={0.3} />
+                  <stop offset="95%" stopColor="#00a651" stopOpacity={0} />
                 </linearGradient>
               </defs>
               <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,166,81,0.05)" vertical={false} />
-              <XAxis 
-                dataKey="time" 
-                axisLine={false} 
-                tickLine={false} 
+              <XAxis
+                dataKey="time"
+                axisLine={false}
+                tickLine={false}
                 tick={{ fill: '#6fbd8a', fontSize: 10, fontWeight: 700, fontFamily: 'Syne' }}
                 dy={15}
               />
-              <YAxis 
-                axisLine={false} 
-                tickLine={false} 
+              <YAxis
+                axisLine={false}
+                tickLine={false}
                 tick={{ fill: '#6fbd8a', fontSize: 10, fontWeight: 700, fontFamily: 'Syne' }}
               />
-              <Tooltip 
-                contentStyle={{ 
-                  background: '#071910', 
-                  border: '1px solid rgba(0,166,81,0.2)', 
+              <Tooltip
+                contentStyle={{
+                  background: '#071910',
+                  border: '1px solid rgba(0,166,81,0.2)',
                   borderRadius: '16px',
                   boxShadow: '0 10px 30px rgba(0,0,0,0.5)'
                 }}
               />
-              <Area 
-                type="monotone" 
-                dataKey="val" 
-                stroke="#00a651" 
-                strokeWidth={4} 
-                fillOpacity={1} 
-                fill="url(#kgGradient)" 
+              <Area
+                type="monotone"
+                dataKey="val"
+                stroke="#00a651"
+                strokeWidth={4}
+                fillOpacity={1}
+                fill="url(#kgGradient)"
               />
             </AreaChart>
           </ResponsiveContainer>
