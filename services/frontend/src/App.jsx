@@ -27,22 +27,88 @@ function App() {
   const [cart, setCart] = useState([]);
   const [stallOrders, setStallOrders] = useState([]);
   const [storeList, setStoreList] = useState(INITIAL_STORES);
-  const [floorSeats, setFloorSeats] = useState(INITIAL_SEATS);
-  const [userRole, setUserRole] = useState(null); // 'user', 'admin', or null
+  const [floorSeats, setFloorSeats] = useState([]);
+  const [userRole, setUserRole] = useState(null);
+  
+  const isLocalHost =
+    typeof window !== 'undefined' &&
+    (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
+  const envApiUrl = import.meta.env.VITE_API_URL || '';
+  const envWsUrl = import.meta.env.VITE_WS_URL || '';
+  const API_URL =
+    !isLocalHost && envApiUrl.includes('localhost')
+      ? ''
+      : envApiUrl || (import.meta.env.DEV ? 'http://localhost:8000' : '');
+  const WS_URL =
+    !isLocalHost && envWsUrl.includes('localhost')
+      ? `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}`
+      : envWsUrl || (import.meta.env.DEV ? 'ws://localhost:8000' : `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}`);
 
-  // Simulation: Random seat flicker every 12s
+  const normalizeSeat = (s) => ({
+    id: s.id || s.seat_id,
+    table_id: s.table_id,
+    status: s.status,
+    lastUpdate: 'Live',
+  });
+  
   useEffect(() => {
-    const interval = setInterval(() => {
+    const fetchSeats = () =>
+      fetch(`${API_URL}/api/seats/`)
+        .then(res => {
+          if (!res.ok) throw new Error("Failed to fetch");
+          return res.json();
+        })
+        .then(data => setFloorSeats(data.map(normalizeSeat)))
+        .catch(err => {
+          console.error("Failed to fetch live seats:", err);
+          setFloorSeats([]);
+        });
+
+    // 1. Fetch initial seats
+    fetchSeats();
+
+    // 2. Connect to WebSocket
+    let ws;
+    const retryTimer = setInterval(() => {
+      // Keep data alive even if WS drops or first fetch failed.
       setFloorSeats(prev => {
-        const next = [...prev];
-        const idx = Math.floor(Math.random() * next.length);
-        const cycle = ['vacant', 'occupied', 'reserved'];
-        const curr = cycle.indexOf(next[idx].status);
-        next[idx] = { ...next[idx], status: cycle[(curr + 1) % cycle.length] };
-        return next;
+        if (prev.length > 0) return prev;
+        fetchSeats();
+        return prev;
       });
-    }, 12000);
-    return () => clearInterval(interval);
+    }, 10000);
+    try {
+      ws = new WebSocket(`${WS_URL}/api/seats/ws`);
+      ws.onmessage = (event) => {
+        try {
+          const payload = JSON.parse(event.data);
+          if (payload.event === 'seat_update') {
+            const updates = payload.seats;
+            setFloorSeats(prev => {
+              const next = [...prev];
+              updates.forEach(u => {
+                const idx = next.findIndex(s => s.id === u.seat_id);
+                if (idx !== -1) {
+                  next[idx] = { ...next[idx], status: u.status, lastUpdate: 'Live' };
+                } else {
+                  next.push(normalizeSeat(u));
+                }
+              });
+              return next;
+            });
+          }
+        } catch (e) {
+          console.error("WS parse error", e);
+        }
+      };
+      ws.onerror = () => console.warn("WebSocket connection failed for live seat updates");
+    } catch {
+      console.warn("WebSocket not available for live seat updates");
+    }
+    return () => {
+       clearInterval(retryTimer);
+       if(ws && ws.readyState === 1) ws.close();
+    }
   }, []);
 
 
@@ -115,22 +181,5 @@ const INITIAL_STORES = [
   { id:'S04', name:'อาหารตามสั่งยายจง', status:'active', zone:'B', owner:'จง', price:'฿50-80' },
   { id:'S05', name:'ส้มตำนางแดง', status:'active', zone:'C', owner:'แดง', price:'฿30-60' },
 ];
-
-const INITIAL_SEATS = [];
-const TABLE_COUNT = 13; // 13 large long tables
-const SEATS_PER_TABLE = 30; // 15 top, 15 bottom
-const statusPool = ['vacant','vacant','vacant','occupied','occupied','reserved'];
-
-for (let t = 1; t <= TABLE_COUNT; t++) {
-  const tid = 'T' + String(t).padStart(2,'0');
-  for (let s = 1; s <= SEATS_PER_TABLE; s++) {
-    INITIAL_SEATS.push({
-      table_id: tid,
-      id: `${tid}-S${String(s).padStart(2,'0')}`,
-      status: statusPool[Math.floor(Math.random() * statusPool.length)],
-      lastUpdate: '2m ago'
-    });
-  }
-}
 
 export default App;

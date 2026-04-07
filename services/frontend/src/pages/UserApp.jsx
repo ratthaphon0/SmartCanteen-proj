@@ -3,7 +3,7 @@ import { motion } from 'framer-motion'
 import useAuthStore from '../stores/authStore'
 import useCartStore from '../stores/cartStore'
 
-const API_URL = import.meta.env.VITE_API_URL || ''
+const API_URL = import.meta.env.VITE_API_URL || (import.meta.env.DEV ? 'http://localhost:8000' : '');
 
 function WaitTimeCountdown({ initialTime }) {
   const [timeLeft, setTimeLeft] = useState(initialTime * 60) // convert to seconds

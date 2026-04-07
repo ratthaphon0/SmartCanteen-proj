@@ -10,10 +10,14 @@ services:
       - API_WS_URL=ws://api:8000/ws/seats
       - REDIS_URL=redis://redis:6379/0
       - MODEL_SIZE=${MODEL_SIZE:-yolov8n}
+      - MODEL_PATH=${MODEL_PATH:-}
       - CONFIDENCE_THRESHOLD=0.45
     volumes:
       - ./services/cv-engine/roi_config.json:/app/roi_config.json:ro
       - ./services/cv-engine/models:/app/models:ro
+      - ./services/cv-engine/data:/app/data:ro
+    ports:
+      - "8001:8001"
     devices:
       - /dev/video0:/dev/video0   # webcam fallback
     depends_on:
@@ -46,11 +50,9 @@ services:
     build:
       context: ./services/frontend
       args:
-        - VITE_API_URL=${API_URL:-http://localhost:8000}
-        - VITE_WS_URL=${WS_URL:-ws://localhost:8000}
+        - VITE_API_URL=
+        - VITE_WS_URL=
     restart: unless-stopped
-    ports:
-      - "3000:80"
     networks:
       - internal
 
@@ -78,7 +80,7 @@ services:
       - postgres_data:/var/lib/postgresql/data
       - ./infra/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U canteen"]
+      test: ["CMD-SHELL", "pg_isready -U canteen -d canteen_db"]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -107,6 +109,7 @@ services:
     depends_on:
       - api
       - frontend
+      - cv-engine
     networks:
       - internal
 

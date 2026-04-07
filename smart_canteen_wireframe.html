@@ -1,0 +1,290 @@
+
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: var(--font-sans); }
+  .screens { display: flex; gap: 20px; padding: 16px 0; overflow-x: auto; align-items: flex-start; }
+  .phone { width: 240px; flex-shrink: 0; border: 1.5px solid var(--color-border-secondary); border-radius: 20px; overflow: hidden; background: #0a1a0d; }
+  .phone-label { font-size: 11px; font-weight: 500; color: var(--color-text-secondary); text-align: center; margin-bottom: 8px; letter-spacing: 0.5px; text-transform: uppercase; }
+  .screen { min-height: 420px; display: flex; flex-direction: column; }
+  .topbar { background: #0d2010; padding: 10px 12px 8px; border-bottom: 0.5px solid #1a3a1a; }
+  .topbar-title { font-size: 13px; font-weight: 500; color: #7ee87e; }
+  .topbar-sub { font-size: 10px; color: #4a8a4a; margin-top: 1px; }
+  .content { flex: 1; padding: 10px; overflow: hidden; }
+  .navbar { background: #0d2010; display: flex; justify-content: space-around; padding: 8px 0 6px; border-top: 0.5px solid #1a3a1a; }
+  .nav-item { display: flex; flex-direction: column; align-items: center; gap: 2px; font-size: 9px; color: #4a7a4a; }
+  .nav-item.active { color: #5dbd5d; }
+  .nav-icon { width: 16px; height: 16px; border-radius: 3px; background: currentColor; opacity: 0.7; }
+  
+  /* Profile card */
+  .profile-card { background: #1a3a1a; border-radius: 10px; padding: 10px; margin-bottom: 10px; }
+  .profile-name { font-size: 13px; font-weight: 500; color: #8de88d; }
+  .profile-sub { font-size: 10px; color: #4a8a4a; margin-top: 2px; }
+  .balance-badge { display: inline-block; background: #0d2010; border-radius: 6px; padding: 3px 8px; font-size: 10px; color: #5dbd5d; margin-top: 6px; }
+
+  /* Section */
+  .section-header { font-size: 11px; font-weight: 500; color: #5dbd5d; margin-bottom: 6px; margin-top: 8px; display: flex; align-items: center; gap: 6px; }
+  .section-header::after { content:''; flex:1; height:0.5px; background:#1a3a1a; }
+  
+  /* Shop tab */
+  .shop-tabs { display: flex; gap: 4px; margin-bottom: 8px; overflow-x: auto; }
+  .shop-tab { font-size: 9px; padding: 3px 7px; border-radius: 12px; border: 0.5px solid #1a3a1a; color: #4a7a4a; white-space: nowrap; cursor: pointer; background: #0d2010; }
+  .shop-tab.active { background: #1a3a1a; color: #7ee87e; border-color: #2a5a2a; }
+  
+  /* Menu grid */
+  .menu-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+  .menu-card { background: #1a3a1a; border-radius: 8px; padding: 8px; border: 0.5px solid #1a3a1a; }
+  .menu-icon { font-size: 20px; margin-bottom: 4px; }
+  .menu-name { font-size: 10px; font-weight: 500; color: #8de88d; }
+  .menu-price { font-size: 9px; color: #5dbd5d; margin-top: 2px; }
+  .add-btn { display: block; width: 100%; margin-top: 5px; background: #2a5a2a; border: none; border-radius: 5px; color: #7ee87e; font-size: 9px; padding: 3px 0; cursor: pointer; }
+  
+  /* Status row */
+  .status-row { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-top: 6px; }
+  .stat-card { background: #1a3a1a; border-radius: 8px; padding: 8px; }
+  .stat-label { font-size: 9px; color: #4a8a4a; }
+  .stat-val { font-size: 16px; font-weight: 500; color: #f0a020; margin-top: 2px; }
+
+  /* Cart */
+  .cart-section { margin-bottom: 10px; }
+  .shop-header-row { display: flex; align-items: center; gap: 6px; margin-bottom: 6px; }
+  .shop-badge { font-size: 9px; background: #1a3a1a; color: #5dbd5d; padding: 2px 7px; border-radius: 10px; border: 0.5px solid #2a5a2a; }
+  .cart-item { display: flex; align-items: center; gap: 8px; padding: 6px 8px; background: #1a3a1a; border-radius: 7px; margin-bottom: 4px; }
+  .cart-item-name { font-size: 10px; color: #8de88d; flex: 1; }
+  .cart-item-price { font-size: 10px; color: #5dbd5d; }
+  .qty-ctrl { display: flex; align-items: center; gap: 4px; }
+  .qty-btn { width: 14px; height: 14px; border-radius: 3px; background: #2a5a2a; border: none; color: #7ee87e; font-size: 10px; display: flex; align-items: center; justify-content: center; cursor: pointer; }
+  .qty-val { font-size: 10px; color: #8de88d; min-width: 10px; text-align: center; }
+  .cart-subtotal { display: flex; justify-content: space-between; font-size: 10px; color: #4a8a4a; padding: 4px 8px; }
+  .cart-total-row { display: flex; justify-content: space-between; align-items: center; padding: 6px 8px; background: #1a3a1a; border-radius: 7px; margin-top: 4px; }
+  .cart-total-label { font-size: 11px; font-weight: 500; color: #8de88d; }
+  .cart-total-val { font-size: 13px; font-weight: 500; color: #f0a020; }
+  .checkout-btn { display: block; width: 100%; background: #2a6a2a; border: none; border-radius: 8px; color: #9de89d; font-size: 11px; font-weight: 500; padding: 8px 0; margin-top: 8px; cursor: pointer; }
+
+  /* Queue */
+  .queue-hero { background: #1a3a1a; border-radius: 10px; padding: 12px; margin-bottom: 10px; text-align: center; }
+  .queue-num { font-size: 36px; font-weight: 500; color: #f0a020; }
+  .queue-label { font-size: 10px; color: #4a8a4a; margin-top: 2px; }
+  .queue-card { background: #1a3a1a; border-radius: 8px; padding: 8px; margin-bottom: 6px; }
+  .queue-shop-name { font-size: 11px; font-weight: 500; color: #7ee87e; margin-bottom: 4px; }
+  .queue-item-row { display: flex; justify-content: space-between; font-size: 10px; color: #4a8a4a; padding: 2px 0; }
+  .queue-status { display: inline-block; font-size: 9px; padding: 2px 8px; border-radius: 10px; background: #f0a02020; color: #f0a020; margin-top: 4px; border: 0.5px solid #f0a02040; }
+  .queue-status.ready { background: #2a6a2a; color: #7ee87e; border-color: #3a8a3a; }
+
+  .divider { height: 0.5px; background: #1a3a1a; margin: 8px 0; }
+  .empty-state { text-align: center; padding: 30px 0; color: #2a5a2a; font-size: 11px; }
+  .empty-icon { font-size: 28px; margin-bottom: 6px; opacity: 0.5; }
+
+  .annotation { font-size: 10px; color: var(--color-text-tertiary); background: var(--color-background-secondary); border: 0.5px dashed var(--color-border-secondary); border-radius: 6px; padding: 4px 8px; margin-top: 8px; line-height: 1.5; }
+  .section-title { font-size: 13px; font-weight: 500; color: var(--color-text-primary); margin-bottom: 4px; }
+  .section-desc { font-size: 11px; color: var(--color-text-secondary); margin-bottom: 12px; line-height: 1.5; }
+</style>
+
+<div style="padding: 0 4px;">
+
+<p class="section-title">หน้า Dashboard — แบ่งตามร้าน</p>
+<p class="section-desc">แสดง shop tabs ให้กรองเมนูตามร้าน + status ด้านล่าง</p>
+
+<div class="screens">
+
+  <!-- Screen 1: Dashboard -->
+  <div>
+    <p class="phone-label">1 · Dashboard</p>
+    <div class="phone">
+      <div class="screen">
+        <div class="topbar">
+          <div class="topbar-title">ด.ช.เกษตร สุขสงบ</div>
+          <div class="topbar-sub">🏦 ฿ 280.00</div>
+        </div>
+        <div class="content">
+          <!-- Shop tabs -->
+          <div class="section-header">เลือกร้าน</div>
+          <div class="shop-tabs">
+            <div class="shop-tab active">🍳 ตามสั่ง</div>
+            <div class="shop-tab">🍜 ก๋วยเตี๋ยว</div>
+            <div class="shop-tab">🍛 ราดแกง</div>
+          </div>
+
+          <!-- Menu grid -->
+          <div class="section-header">ร้านอาหารตามสั่ง</div>
+          <div class="menu-grid">
+            <div class="menu-card">
+              <div class="menu-icon">🍗</div>
+              <div class="menu-name">ข้าวมันไก่</div>
+              <div class="menu-price">฿55</div>
+              <button class="add-btn">+ เพิ่มตะกร้า</button>
+            </div>
+            <div class="menu-card">
+              <div class="menu-icon">🦐</div>
+              <div class="menu-name">ผัดกะเพราไข่ดาว</div>
+              <div class="menu-price">฿50</div>
+              <button class="add-btn">+ เพิ่มตะกร้า</button>
+            </div>
+            <div class="menu-card">
+              <div class="menu-icon">🥚</div>
+              <div class="menu-name">ข้าวไข่เจียว</div>
+              <div class="menu-price">฿45</div>
+              <button class="add-btn">+ เพิ่มตะกร้า</button>
+            </div>
+            <div class="menu-card">
+              <div class="menu-icon">🥩</div>
+              <div class="menu-name">ข้าวหมูแดง</div>
+              <div class="menu-price">฿55</div>
+              <button class="add-btn">+ เพิ่มตะกร้า</button>
+            </div>
+          </div>
+
+          <!-- Status row -->
+          <div class="status-row">
+            <div class="stat-card">
+              <div class="stat-label">รายการวันนี้</div>
+              <div class="stat-val">3</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-label">คิวของคุณ</div>
+              <div class="stat-val">Q-07</div>
+            </div>
+          </div>
+        </div>
+        <div class="navbar">
+          <div class="nav-item active">🏠<span>หน้าหลัก</span></div>
+          <div class="nav-item">🛒<span>ตะกร้า</span></div>
+          <div class="nav-item">⏱<span>คิว</span></div>
+          <div class="nav-item">📋<span>ประวัติ</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="annotation">
+      Tab active = ร้านที่เลือก<br>เมนูเปลี่ยนตาม tab ที่กด
+    </div>
+  </div>
+
+  <!-- Screen 2: Cart -->
+  <div>
+    <p class="phone-label">2 · ตะกร้า (แยกร้าน)</p>
+    <div class="phone">
+      <div class="screen">
+        <div class="topbar">
+          <div class="topbar-title">ตะกร้าของคุณ</div>
+          <div class="topbar-sub">2 ร้าน · 3 รายการ</div>
+        </div>
+        <div class="content">
+
+          <!-- Shop 1 -->
+          <div class="cart-section">
+            <div class="shop-header-row">
+              <span class="shop-badge">🍳 ร้านอาหารตามสั่ง</span>
+            </div>
+            <div class="cart-item">
+              <span style="font-size:14px">🍗</span>
+              <span class="cart-item-name">ข้าวมันไก่</span>
+              <div class="qty-ctrl">
+                <button class="qty-btn">−</button>
+                <span class="qty-val">1</span>
+                <button class="qty-btn">+</button>
+              </div>
+              <span class="cart-item-price">฿55</span>
+            </div>
+            <div class="cart-item">
+              <span style="font-size:14px">🥩</span>
+              <span class="cart-item-name">ข้าวหมูแดง</span>
+              <div class="qty-ctrl">
+                <button class="qty-btn">−</button>
+                <span class="qty-val">1</span>
+                <button class="qty-btn">+</button>
+              </div>
+              <span class="cart-item-price">฿55</span>
+            </div>
+            <div class="cart-subtotal">
+              <span>รวมร้านนี้</span><span>฿110</span>
+            </div>
+          </div>
+
+          <div class="divider"></div>
+
+          <!-- Shop 2 -->
+          <div class="cart-section">
+            <div class="shop-header-row">
+              <span class="shop-badge">🍜 ร้านก๋วยเตี๋ยว</span>
+            </div>
+            <div class="cart-item">
+              <span style="font-size:14px">🍜</span>
+              <span class="cart-item-name">ก๋วยเตี๋ยวเรือ</span>
+              <div class="qty-ctrl">
+                <button class="qty-btn">−</button>
+                <span class="qty-val">1</span>
+                <button class="qty-btn">+</button>
+              </div>
+              <span class="cart-item-price">฿40</span>
+            </div>
+            <div class="cart-subtotal">
+              <span>รวมร้านนี้</span><span>฿40</span>
+            </div>
+          </div>
+
+          <div class="divider"></div>
+
+          <div class="cart-total-row">
+            <span class="cart-total-label">ยอดรวมทั้งหมด</span>
+            <span class="cart-total-val">฿150</span>
+          </div>
+          <button class="checkout-btn">ยืนยันสั่งอาหาร →</button>
+        </div>
+        <div class="navbar">
+          <div class="nav-item">🏠<span>หน้าหลัก</span></div>
+          <div class="nav-item active">🛒<span>ตะกร้า</span></div>
+          <div class="nav-item">⏱<span>คิว</span></div>
+          <div class="nav-item">📋<span>ประวัติ</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="annotation">
+      แยก section ตามร้าน<br>แต่ละร้านมี subtotal ของตัวเอง
+    </div>
+  </div>
+
+  <!-- Screen 3: Queue -->
+  <div>
+    <p class="phone-label">3 · คิว (แยกตามร้าน)</p>
+    <div class="phone">
+      <div class="screen">
+        <div class="topbar">
+          <div class="topbar-title">สถานะคิว</div>
+          <div class="topbar-sub">อัปเดตอัตโนมัติ</div>
+        </div>
+        <div class="content">
+          <div class="queue-hero">
+            <div style="font-size:10px;color:#4a8a4a;margin-bottom:4px">คิวรวมของคุณ</div>
+            <div class="queue-num">Q-07</div>
+            <div class="queue-label">มีคนรออยู่ก่อน 4 คน</div>
+          </div>
+
+          <!-- Queue per shop -->
+          <div class="queue-card">
+            <div class="queue-shop-name">🍳 ร้านอาหารตามสั่ง</div>
+            <div class="queue-item-row"><span>ข้าวมันไก่ × 1</span><span>฿55</span></div>
+            <div class="queue-item-row"><span>ข้าวหมูแดง × 1</span><span>฿55</span></div>
+            <span class="queue-status">⏳ กำลังปรุง</span>
+          </div>
+
+          <div class="queue-card">
+            <div class="queue-shop-name">🍜 ร้านก๋วยเตี๋ยว</div>
+            <div class="queue-item-row"><span>ก๋วยเตี๋ยวเรือ × 1</span><span>฿40</span></div>
+            <span class="queue-status ready">✓ พร้อมรับแล้ว</span>
+          </div>
+
+        </div>
+        <div class="navbar">
+          <div class="nav-item">🏠<span>หน้าหลัก</span></div>
+          <div class="nav-item">🛒<span>ตะกร้า</span></div>
+          <div class="nav-item active">⏱<span>คิว</span></div>
+          <div class="nav-item">📋<span>ประวัติ</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="annotation">
+      แต่ละร้านมี status แยกกัน<br>ร้านที่พร้อมจะ highlight สีเขียว
+    </div>
+  </div>
+
+</div>
+</div>

@@ -37,18 +37,32 @@
 git clone <repo-url> && cd SmartCanteen-proj
 cp .env.example .env   # แก้ไข DB_PASS, SECRET_KEY, FCM_SERVER_KEY
 
-# 2. Build & launch all services
-docker compose up --build -d
+# 2. Build + launch Docker services
+make start
 
 # 3. Init database schema
 docker compose exec api python -m alembic upgrade head
 
-# 4. Load ROI config & test camera feed
+# 4. Start Cloudflare tunnel (systemd user service)
+make start-tunnel
+
+# 5. Load ROI config & test camera feed
 docker compose exec cv-engine python -c "from main import test_camera; test_camera()"
 
-# 5. Access services
-# Dashboard → http://localhost:3000
-# API docs  → http://localhost:8000/docs
+# 6. Access services
+# Web app   → https://smart-canteen.app
+# API docs  → https://smart-canteen.app/docs
+```
+
+### Shortcut Commands
+
+```bash
+make help            # ดูคำสั่งทั้งหมด
+make web-up          # start docker + tunnel ทีเดียว
+make web-down        # stop tunnel + docker
+make status          # เช็กสถานะ docker + tunnel
+make tunnel-logs     # ดู log tunnel แบบสด
+make ports           # แสดงพอร์ต/URL ที่จำเป็น
 ```
 
 ## Project Structure
@@ -89,7 +103,7 @@ Each feature branch → PR เข้า `develop` → CI auto → merge เข�
 
 ## Services
 
-### CV Engine (Port: internal only)
+### CV Engine (Port: 8001)
 - YOLOv8n seat detection pipeline
 - Temporal state machine (occupied/reserved/vacant)
 - Queue exclusion zone filtering
@@ -102,11 +116,17 @@ Each feature branch → PR เข้า `develop` → CI auto → merge เข�
 - Menu recommendation (collaborative filtering)
 - API docs at `/docs` (Swagger UI)
 
-### Frontend (Port: 3000)
+### Frontend (ผ่าน Nginx: 8080/8443 ภายในเครื่อง)
 - Real-time floor map with color-coded seats
 - User ordering app with queue tracking
 - Stall vendor panel with order management
 - PWA with push notifications
+
+### Nginx Reverse Proxy (Ports: 8080, 8443)
+- Route `/` ไป frontend
+- Route `/api/*` และ `/api/seats/ws` ไป backend
+- Route `/video_feed` ไป CV engine
+- ใช้ร่วมกับ Cloudflare Tunnel เพื่อเปิดเว็บผ่านโดเมน
 
 ### Notification Worker
 - Redis subscriber for order status changes

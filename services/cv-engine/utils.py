@@ -82,28 +82,27 @@ def point_in_polygon(point: List[float], polygon: List[List[float]]) -> bool:
     return inside
 
 
-def compute_iou(bbox: List[float], roi: List[List[float]]) -> float:
+def compute_ioa(bbox: List[float], roi: List[List[float]]) -> float:
     """
-    Compute IoU between a bounding box and a polygon ROI.
-
-    Uses bounding box approximation of the polygon for fast computation.
+    Compute Intersection over Area (IoA) between a bounding box and a polygon ROI.
+    Divides the intersection overlap by the area of the ROI (the seat target), NOT the union.
 
     Args:
-        bbox: [x1, y1, x2, y2] bounding box
-        roi: List of [x, y] vertices
+        bbox: [x1, y1, x2, y2] bounding box of detected person
+        roi: List of [x, y] vertices representing the seat
 
     Returns:
-        IoU value between 0 and 1
+        IoA value between 0 and 1, representing percentage of seat covered
     """
     if not roi or not bbox:
         return 0.0
 
-    # Convert polygon to bounding box
+    # Convert polygon to bounding box for fast intersection check
     roi_xs = [p[0] for p in roi]
     roi_ys = [p[1] for p in roi]
     roi_bbox = [min(roi_xs), min(roi_ys), max(roi_xs), max(roi_ys)]
 
-    # Compute intersection
+    # Compute intersection area
     x1 = max(bbox[0], roi_bbox[0])
     y1 = max(bbox[1], roi_bbox[1])
     x2 = min(bbox[2], roi_bbox[2])
@@ -114,17 +113,59 @@ def compute_iou(bbox: List[float], roi: List[List[float]]) -> float:
 
     intersection = (x2 - x1) * (y2 - y1)
 
-    # Compute union
-    bbox_area = (bbox[2] - bbox[0]) * (bbox[3] - bbox[1])
+    # Compute target ROI area
     roi_area = (roi_bbox[2] - roi_bbox[0]) * (roi_bbox[3] - roi_bbox[1])
-    union = bbox_area + roi_area - intersection
 
-    if union <= 0:
+    if roi_area <= 0:
         return 0.0
 
-    return intersection / union
+    return intersection / roi_area
 
 
 def bbox_center(bbox: List[float]) -> List[float]:
     """Get center point of a bounding box [x1, y1, x2, y2]."""
     return [(bbox[0] + bbox[2]) / 2, (bbox[1] + bbox[3]) / 2]
+
+
+import math
+
+def calculate_distance(p1: List[float], p2: List[float]) -> float:
+    """Calculate Euclidean distance between two points."""
+    return math.sqrt((p1[0] - p2[0])**2 + (p1[1] - p2[1])**2)
+
+def polygon_centroid(polygon: List[List[float]]) -> List[float]:
+    """
+    Calculate the centroid (center of mass) of a polygon.
+    Returns [x, y]. If polygon is invalid or empty, returns [0, 0].
+    """
+    if not polygon or len(polygon) < 3:
+        if polygon and len(polygon) > 0:
+            return polygon[0] # Fallback to first point
+        return [0.0, 0.0]
+        
+    area = 0.0
+    cx = 0.0
+    cy = 0.0
+    
+    n = len(polygon)
+    for i in range(n):
+        j = (i + 1) % n
+        xi, yi = polygon[i]
+        xj, yj = polygon[j]
+        cross = (xi * yj - xj * yi)
+        area += cross
+        cx += (xi + xj) * cross
+        cy += (yi + yj) * cross
+        
+    area *= 0.5
+    
+    if area == 0:
+        # Fallback to simple average if area is 0 (collinear points)
+        xs = [p[0] for p in polygon]
+        ys = [p[1] for p in polygon]
+        return [sum(xs)/len(xs), sum(ys)/len(ys)]
+        
+    centroid_x = cx / (6.0 * area)
+    centroid_y = cy / (6.0 * area)
+    
+    return [abs(centroid_x), abs(centroid_y)]

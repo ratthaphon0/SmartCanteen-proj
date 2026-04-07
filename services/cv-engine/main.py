@@ -13,6 +13,7 @@ from typing import Optional
 import cv2
 import numpy as np
 import redis.asyncio as redis
+from aiohttp import web
 
 from detector import SeatDetector
 from seat_logic import SeatStateManager
@@ -23,9 +24,10 @@ CAMERA_SOURCE = os.getenv("CAMERA_SOURCE", "0")  # RTSP URL or device index
 REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379/0")
 API_WS_URL = os.getenv("API_WS_URL", "ws://localhost:8000/ws/seats")
 MODEL_SIZE = os.getenv("MODEL_SIZE", "yolov8n")
+MODEL_PATH = os.getenv("MODEL_PATH", "")
 CONFIDENCE_THRESHOLD = float(os.getenv("CONFIDENCE_THRESHOLD", "0.45"))
-EMIT_INTERVAL = 2.0  # seconds between state emissions
-FRAME_SIZE = (640, 640)
+EMIT_INTERVAL = 10.0  # seconds between state emissions (heartbeat)
+FRAME_SIZE = (1280, 720)
 
 # ─── Logging ──────────────────────────────────────
 logging.basicConfig(
@@ -44,6 +46,39 @@ class CVEnginePipeline:
         self.redis_client: Optional[redis.Redis] = None
         self.roi_config: dict = {}
         self.running: bool = False
+        self.latest_frame: Optional[bytes] = None
+        self.last_emitted_states = []
+        self.app = web.Application()
+        self.app.router.add_get("/video_feed", self.video_feed)
+        cors = {
+            "Access-Control-Allow-Origin": "*",
+            "Access-Control-Allow-Methods": "GET, OPTIONS",
+            "Access-Control-Allow-Headers": "Content-Type"
+        }
+        self.runner = None
+
+    async def video_feed(self, request):
+        response = web.StreamResponse(
+            status=200,
+            reason='OK',
+            headers={
+                'Content-Type': 'multipart/x-mixed-replace; boundary=frame',
+                'Access-Control-Allow-Origin': '*'
+            }
+        )
+        await response.prepare(request)
+
+        try:
+            while True:
+                if self.latest_frame is not None:
+                    await response.write(b'--frame\r\n')
+                    await response.write(b'Content-Type: image/jpeg\r\n\r\n')
+                    await response.write(self.latest_frame)
+                    await response.write(b'\r\n')
+                await asyncio.sleep(0.05)
+        except Exception:
+            pass
+        return response
 
     async def initialize(self):
         """Load model, ROI config, and connect to Redis."""
@@ -56,7 +91,8 @@ class CVEnginePipeline:
         # Initialize YOLOv8 detector
         self.detector = SeatDetector(
             model_size=MODEL_SIZE,
-            confidence=CONFIDENCE_THRESHOLD
+            confidence=CONFIDENCE_THRESHOLD,
+            model_path=MODEL_PATH if MODEL_PATH else None
         )
         logger.info(f"Loaded model: {MODEL_SIZE}")
 
@@ -67,6 +103,13 @@ class CVEnginePipeline:
         self.redis_client = redis.from_url(REDIS_URL, decode_responses=True)
         await self.redis_client.ping()
         logger.info("Connected to Redis")
+
+        # Start aiohttp server
+        self.runner = web.AppRunner(self.app)
+        await self.runner.setup()
+        site = web.TCPSite(self.runner, '0.0.0.0', 8001)
+        await site.start()
+        logger.info("Local Web server started on port 8001 for MJPEG stream")
 
     def preprocess_frame(self, frame: np.ndarray) -> np.ndarray:
         """
@@ -90,8 +133,55 @@ class CVEnginePipeline:
         # Step 2: Run YOLOv8 detection
         detections = self.detector.detect(processed)
 
-        # Step 3-5: Update seat states via state manager
+        # Step 3: Draw ROIs and Detections
+        annotated = processed.copy()
+        
+        # Update seat states
         seat_states = self.state_manager.update(detections)
+        occupied_seats = {s['seat_id'] for s in seat_states if s['status'] != 'vacant'}
+        
+        # DEBUG: Draw ALL ROI grids so we can see coverage
+        for table in self.roi_config.get("tables", []):
+            if "table_roi" in table:
+                pts = np.array(table["table_roi"], np.int32).reshape((-1, 1, 2))
+                # Occupied tables = thick red, others = thin dark blue
+                if table["table_id"] in {s['table_id'] for s in seat_states if s['status'] != 'vacant'}:
+                    cv2.polylines(annotated, [pts], isClosed=True, color=(0, 0, 255), thickness=2)
+                else:
+                    cv2.polylines(annotated, [pts], isClosed=True, color=(100, 50, 0), thickness=1)
+            
+            for seat in table.get("seats", []):
+                if "roi" in seat:
+                    s_pts = np.array(seat["roi"], np.int32).reshape((-1, 1, 2))
+                    if seat["seat_id"] in occupied_seats:
+                        status = next((s['status'] for s in seat_states if s['seat_id'] == seat['seat_id']), 'vacant')
+                        color = (0, 0, 255) if status == 'occupied' else (0, 255, 255)
+                        cv2.polylines(annotated, [s_pts], isClosed=True, color=color, thickness=2)
+                    else:
+                        cv2.polylines(annotated, [s_pts], isClosed=True, color=(80, 40, 0), thickness=1)
+
+        # Draw Person boxes
+        for det in detections:
+            x1, y1, x2, y2 = map(int, det.bbox)
+            color = (0, 255, 0) if det.class_name == "person" else (0, 165, 255)
+            cv2.rectangle(annotated, (x1, y1), (x2, y2), color, 2)
+            
+            # Draw bottom-center anchor point (the "feet" we use for seat matching)
+            if det.class_name == "person":
+                bcx = int(x1 + (x2 - x1) / 2)
+                bcy = int(y2)
+                cv2.circle(annotated, (bcx, bcy), 5, (0, 255, 255), -1)  # Yellow filled dot = feet
+                cv2.circle(annotated, (bcx, bcy), 7, (0, 255, 255), 1)   # Yellow ring
+            
+            # Confidence label
+            if det.class_name != "person" or det.confidence < 0.8:
+                cv2.putText(annotated, f"{det.class_name} {det.confidence:.2f}", (x1, y1 - 10),
+                            cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 2)
+
+        # Encode frame to JPEG
+        ret, buffer = cv2.imencode('.jpg', annotated, [int(cv2.IMWRITE_JPEG_QUALITY), 65])
+        if ret:
+            self.latest_frame = buffer.tobytes()
 
         return seat_states
 
@@ -136,6 +226,9 @@ class CVEnginePipeline:
             return
 
         logger.info(f"Camera opened: {CAMERA_SOURCE}")
+        # Skip the first 7 seconds for demo
+        cap.set(cv2.CAP_PROP_POS_FRAMES, int(cap.get(cv2.CAP_PROP_FPS) * 7))
+
         self.running = True
         last_emit = 0
 
@@ -143,17 +236,33 @@ class CVEnginePipeline:
             while self.running:
                 ret, frame = cap.read()
                 if not ret:
-                    logger.warning("Frame capture failed, retrying...")
-                    await asyncio.sleep(0.1)
-                    continue
+                    logger.warning("Frame capture failed or video ended, restarting loop...")
+                    cap.set(cv2.CAP_PROP_POS_FRAMES, int(cap.get(cv2.CAP_PROP_FPS) * 7)) # skip 7s
+                    ret, frame = cap.read()
+                    if not ret:
+                        logger.error("Failed to re-read video frame. Exiting loop.")
+                        await asyncio.sleep(1)
+                        continue
 
                 # Process frame
                 seat_states = await self.process_frame(frame)
 
-                # Emit at configured interval
+                # Emit only on state change or heartbeat interval
                 now = time.time()
-                if now - last_emit >= EMIT_INTERVAL:
+                
+                # Check if state changed by comparing statuses and reserved_objects
+                state_changed = False
+                if len(seat_states) != len(self.last_emitted_states):
+                    state_changed = True
+                else:
+                    for s_new, s_old in zip(seat_states, self.last_emitted_states):
+                        if s_new['status'] != s_old['status'] or s_new.get('reserved_object') != s_old.get('reserved_object'):
+                            state_changed = True
+                            break
+
+                if state_changed or now - last_emit >= EMIT_INTERVAL:
                     await self.emit_state(seat_states)
+                    self.last_emitted_states = seat_states
                     last_emit = now
 
                 # Small delay to prevent CPU overload

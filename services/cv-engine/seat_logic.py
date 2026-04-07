@@ -13,12 +13,13 @@ import time
 from collections import deque
 from typing import Dict, List, Optional
 
+import cv2
+import numpy as np
+
 from detector import Detection, RESERVED_OBJECTS
-from utils import point_in_polygon, compute_iou
+from utils import point_in_polygon, compute_ioa, calculate_distance, polygon_centroid
 
 logger = logging.getLogger(__name__)
-
-# ─── Shapely import (optional, graceful fallback) ─────
 try:
     from shapely.geometry import Point, Polygon
     HAS_SHAPELY = True
@@ -29,20 +30,15 @@ except ImportError:
                    "falling back to IoU-based boost")
 
 # ─── Constants ────────────────────────────────────
-MIN_FRAMES_OCCUPIED = 8     # frames to confirm person → occupied
+MIN_FRAMES_OCCUPIED = 8     # 8 frames (about 2-3 seconds at 3-10fps depending on stream)
 MIN_FRAMES_RESERVED = 15    # frames to confirm object → reserved
 MIN_FRAMES_VACANT = 30      # frames to confirm empty → vacant (~10s at 3fps)
 HISTORY_BUFFER_SIZE = 60    # frame history per seat
+MAX_DISTANCE_TO_SEAT = 150.0 # max pixel distance from person center to seat center
 
 # [EXPERIMENTAL] Crowd mode
 CROWD_THRESHOLD_MULTIPLIER = 1.5   # person count > seats × 1.5 → crowd mode
 CROWD_PAUSE_SECONDS = 45           # pause vacant transitions during crowd
-
-# [EXPERIMENTAL] Chair ROI scoring
-CHAIR_SCORE_THRESHOLD = 5   # occupancy_score >= 5 → confirmed seated
-CHAIR_IN_CHAIR_BONUS = 5    # person base point inside chair_roi polygon
-CHAIR_IN_TABLE_BONUS = 1    # person base point inside table_roi but not chair
-CHAIR_TEMPORAL_BOOST = 3    # frames to skip in temporal buffer when chair confirms
 
 
 class SeatState:
@@ -133,17 +129,10 @@ class SeatStateManager:
                         self.chair_polys[seat_id] = Polygon(chair_roi)
 
         self.total_seats = len(self.seats)
-        chair_count = len(self.chair_rois)
         logger.info(
             f"Initialized {self.total_seats} seats, "
-            f"{chair_count} chair ROIs, "
             f"{len(self.queue_zones)} queue zones"
         )
-        if chair_count > 0 and HAS_SHAPELY:
-            logger.info("[EXPERIMENTAL] chair_roi scoring ACTIVE")
-        if chair_count > 0 and not HAS_SHAPELY:
-            logger.warning("[EXPERIMENTAL] chair_roi defined but shapely "
-                           "unavailable — using IoU fallback")
 
     def _filter_queue_zone(self, detections: List[Detection]) -> List[Detection]:
         """Step 1: Remove detections within queue exclusion zones."""
@@ -179,51 +168,7 @@ class SeatStateManager:
                 logger.info("[EXPERIMENTAL] Crowd mode ended")
             self.crowd_mode = False
 
-    def _evaluate_chair_score(
-        self,
-        seat: SeatState,
-        person_detections: List[Detection]
-    ) -> int:
-        """
-        [EXPERIMENTAL] Evaluate occupancy score using chair_roi.
 
-        Uses the person's base point (bottom-center of bounding box)
-        to determine if someone is truly seated vs. standing nearby.
-
-        Scoring:
-          - Person base in chair_roi → +5 (confirmed seated)
-          - Person base in table_roi only → +1 (possibly standing)
-
-        Returns:
-            Occupancy score (>= CHAIR_SCORE_THRESHOLD means confirmed seated)
-        """
-        seat_id = seat.seat_id
-        table_id = seat.table_id
-
-        # Check if we have shapely polygons for this seat
-        chair_poly = self.chair_polys.get(seat_id)
-        table_poly = self.table_polys.get(table_id)
-
-        if not chair_poly or not table_poly:
-            return 0  # No chair_roi defined or shapely unavailable
-
-        score = 0
-        for det in person_detections:
-            # Get person base point (bottom-center of bbox)
-            # BBox format: [x1, y1, x2, y2]
-            center_x = (det.bbox[0] + det.bbox[2]) / 2
-            bottom_y = det.bbox[3]
-            person_base = Point(center_x, bottom_y)
-
-            # Rule 1: Person base in table zone → +1
-            if table_poly.contains(person_base):
-                score += CHAIR_IN_TABLE_BONUS
-
-            # Rule 2: Person base in chair zone → +5 (confirmed seated)
-            if chair_poly.contains(person_base):
-                score += CHAIR_IN_CHAIR_BONUS
-
-        return score
 
     def _determine_seat_state(
         self,
@@ -245,40 +190,34 @@ class SeatStateManager:
 
         seat_roi = seat.seat_roi
         table_roi = self.table_rois.get(seat.table_id, [])
+        seat_center = polygon_centroid(seat_roi)
 
-        # Find persons in seat ROI
-        persons = [
-            d for d in detections
-            if d.class_name == "person"
-            and compute_iou(d.bbox, seat_roi) > 0.35
-        ]
+        # Find persons in seat ROI using Bottom-Centric point (Feet-to-Seat Mapping)
+        persons = []
+        for d in detections:
+            if d.class_name == "person" and d.confidence > 0.35:
+                x1, y1, x2, y2 = d.bbox
+                # Bottom-Center = the point where their feet touch the ground
+                bottom_center_x = x1 + (x2 - x1) / 2
+                bottom_center_y = y2
+                
+                # Check if bottom-center is inside the polygon
+                # cv2.pointPolygonTest requires the point as a tuple (x,y)
+                is_inside = cv2.pointPolygonTest(
+                    np.array(seat_roi, dtype=np.float32), 
+                    (bottom_center_x, bottom_center_y), 
+                    False
+                ) >= 0
+                
+                if is_inside:
+                    persons.append(d)
 
         # Find objects on table ROI
         objects = [
             d for d in detections
             if d.class_name in RESERVED_OBJECTS
-            and compute_iou(d.bbox, table_roi) > 0.25
+            and compute_ioa(d.bbox, table_roi) > 0.25
         ]
-
-        # [EXPERIMENTAL] Chair ROI scoring
-        chair_boost = 0
-        if seat.seat_id in self.chair_rois and persons:
-            if HAS_SHAPELY and seat.seat_id in self.chair_polys:
-                # Full shapely-based scoring
-                chair_score = self._evaluate_chair_score(seat, persons)
-                if chair_score >= CHAIR_SCORE_THRESHOLD:
-                    # Confirmed seated — boost by skipping temporal frames
-                    chair_boost = CHAIR_TEMPORAL_BOOST
-            else:
-                # Fallback: IoU-based boost (original logic)
-                chair_roi_coords = self.chair_rois[seat.seat_id]
-                chair_displaced = any(
-                    d.class_name == "person"
-                    and compute_iou(d.bbox, chair_roi_coords) > 0.15
-                    for d in detections
-                )
-                if chair_displaced:
-                    chair_boost = 2
 
         # Record frame observation
         if persons:
@@ -299,7 +238,7 @@ class SeatStateManager:
         if observation == "person":
             person_frames = sum(1 for h in recent[-MIN_FRAMES_OCCUPIED:]
                                 if h == "person")
-            if person_frames + chair_boost >= MIN_FRAMES_OCCUPIED:
+            if person_frames >= MIN_FRAMES_OCCUPIED:
                 seat.status = "occupied"
                 seat.confidence = best_conf
                 seat.reserved_object = None

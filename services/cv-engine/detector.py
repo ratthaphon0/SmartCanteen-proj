@@ -13,8 +13,9 @@ logger = logging.getLogger(__name__)
 
 # Object classes relevant for canteen detection
 PERSON_CLASS = "person"
+CHAIR_CLASS = "chair"
 RESERVED_OBJECTS = ["backpack", "handbag", "bottle", "bowl", "cup", "laptop", "cell phone"]
-ALL_TARGET_CLASSES = [PERSON_CLASS] + RESERVED_OBJECTS
+ALL_TARGET_CLASSES = [PERSON_CLASS, CHAIR_CLASS] + RESERVED_OBJECTS
 
 
 @dataclass

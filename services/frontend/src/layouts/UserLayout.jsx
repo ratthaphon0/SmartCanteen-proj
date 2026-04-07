@@ -2,19 +2,23 @@ import React from 'react';
 import { Outlet, NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { Home, ShoppingCart, Clock, Map as MapIcon, LogOut } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import useCartStore from '../stores/cartStore';
 
-export const UserLayout = ({ cart = [], setUserRole }) => {
+export const UserLayout = ({ setUserRole }) => {
   const location = useLocation();
   const navigate = useNavigate();
+  const cartCount = useCartStore(s => s.getItemCount());
 
   const handleLogout = () => {
     setUserRole(null);
+    // Clear session data on logout
+    sessionStorage.removeItem('sc_orders');
     navigate('/login');
   };
 
   const navItems = [
     { to: '/user/dashboard', icon: Home, label: 'หน้าแรก' },
-    { to: '/user/cart', icon: ShoppingCart, label: 'ตะกร้า', badge: cart.reduce((a, i) => a + i.qty, 0) },
+    { to: '/user/cart', icon: ShoppingCart, label: 'ตะกร้า', badge: cartCount },
     { to: '/user/queue', icon: Clock, label: 'คิว' },
     { to: '/user/floormap', icon: MapIcon, label: 'แผนที่' },
   ];
