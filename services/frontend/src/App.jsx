@@ -27,7 +27,7 @@ function App() {
           </div>
         </nav>
 
-        {/* ─── Routes ─── */}
+        {/* ─── Routestest ─── */}
         <main className="main-content">
           <Routes>
             <Route path="/" element={<FloorMap />} />
