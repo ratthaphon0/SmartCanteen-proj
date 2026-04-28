@@ -1,7 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import useCartStore from '../../stores/cartStore';
+import generatePayload from 'promptpay-qr';
+import { QRCodeSVG } from 'qrcode.react';
 
 const API_URL = import.meta.env.VITE_API_URL || (import.meta.env.DEV ? 'http://localhost:8000' : '');
 
@@ -9,6 +11,8 @@ export const UserCart = ({ setStallOrders }) => {
   const navigate = useNavigate();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [demoMode, setDemoMode] = useState(false);
+  const [showPayment, setShowPayment] = useState(false);
+  const [promptpayPayload, setPromptpayPayload] = useState('');
 
   const items = useCartStore(s => s.items);
   const updateQuantity = useCartStore(s => s.updateQuantity);
@@ -27,6 +31,18 @@ export const UserCart = ({ setStallOrders }) => {
 
   const handleCheckout = async () => {
     if (items.length === 0) return;
+    
+    // Generate PromptPay Payload
+    const phoneNumber = '0974519452'; // รัฐพล คาน
+    const amount = grandTotal;
+    const payload = generatePayload(phoneNumber, { amount });
+    setPromptpayPayload(payload);
+    
+    setShowPayment(true);
+  };
+
+  const confirmPayment = async () => {
+    setShowPayment(false);
     setIsSubmitting(true);
 
     const shopIds = Object.keys(shopGroups);
@@ -242,6 +258,65 @@ export const UserCart = ({ setStallOrders }) => {
           </div>
         </div>
       )}
+
+      {/* ═══ PromptPay Payment Modal ═══ */}
+      <AnimatePresence>
+        {showPayment && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setShowPayment(false)}
+              className="absolute inset-0 bg-kg-dark/80 backdrop-blur-sm"
+            />
+            
+            <motion.div 
+              initial={{ scale: 0.9, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.9, opacity: 0, y: 20 }}
+              className="relative bg-kg-surface border border-kg-green/20 rounded-3xl p-6 w-full max-w-sm shadow-[0_20px_60px_rgba(0,0,0,0.8)] overflow-hidden"
+            >
+              {/* Decorative Glow */}
+              <div className="absolute -top-20 -right-20 w-40 h-40 bg-kg-green-l/20 blur-[50px] rounded-full pointer-events-none" />
+              
+              <div className="text-center mb-6 relative">
+                <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-[#003D6A]/20 text-[#003D6A] mb-3 border border-[#003D6A]/30">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="w-8 h-8 text-white"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>
+                </div>
+                <h3 className="font-en font-black text-2xl uppercase tracking-tighter text-white">PromptPay</h3>
+                <p className="text-[10px] text-kg-green-p/50 font-en tracking-[0.2em] uppercase mt-1">Scan to Complete Order</p>
+              </div>
+              
+              <div className="bg-white p-5 rounded-2xl shadow-inner flex flex-col items-center justify-center relative mb-6">
+                 {promptpayPayload && (
+                   <QRCodeSVG value={promptpayPayload} size={200} level="M" />
+                 )}
+                 <div className="mt-4 text-center">
+                    <div className="text-xs font-bold text-gray-500 uppercase tracking-widest font-en">Amount to Pay</div>
+                    <div className="font-en font-black text-3xl text-kg-dark italic">฿{grandTotal.toFixed(2)}</div>
+                    <div className="text-[10px] text-gray-400 mt-1">รัฐพล คาน (097-451-9452)</div>
+                 </div>
+              </div>
+              
+              <div className="flex flex-col gap-3">
+                <button 
+                  onClick={confirmPayment}
+                  className="w-full py-4 bg-kg-green text-white font-black rounded-xl text-xs uppercase tracking-[0.1em] shadow-[0_10px_30px_rgba(0,166,81,0.3)] hover:bg-kg-green-l transition-colors"
+                >
+                  ชำระเงินเรียบร้อยแล้ว
+                </button>
+                <button 
+                  onClick={() => setShowPayment(false)}
+                  className="w-full py-3 border border-kg-green/20 text-kg-green-p/50 font-bold rounded-xl text-xs uppercase tracking-[0.1em] hover:bg-white/5 transition-colors"
+                >
+                  ยกเลิก
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };

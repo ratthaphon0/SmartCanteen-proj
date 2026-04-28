@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { QRCodeSVG } from 'qrcode.react';
 
 const API_URL = import.meta.env.VITE_API_URL || (import.meta.env.DEV ? 'http://localhost:8000' : '');
 const POLL_INTERVAL = 10_000; // 10 seconds
@@ -53,63 +54,6 @@ const DEMO_ORDERS = [
     timestamp: new Date().toISOString(),
   },
 ];
-
-// ─── Simple QR-like pattern generator (deterministic from string) ───
-function QRPattern({ data, size = 120 }) {
-  // Generate a deterministic grid pattern from the data string
-  const gridSize = 11;
-  const cellSize = size / gridSize;
-  const hash = data.split('').reduce((acc, c, i) => acc + c.charCodeAt(0) * (i + 1), 0);
-
-  const cells = [];
-  for (let row = 0; row < gridSize; row++) {
-    for (let col = 0; col < gridSize; col++) {
-      // Position markers (3 corners)
-      const isTopLeft = row < 3 && col < 3;
-      const isTopRight = row < 3 && col >= gridSize - 3;
-      const isBottomLeft = row >= gridSize - 3 && col < 3;
-      const isPositionMarker = isTopLeft || isTopRight || isBottomLeft;
-
-      // Border of position markers
-      const isOuterBorder = (isTopLeft && (row === 0 || row === 2 || col === 0 || col === 2)) ||
-                           (isTopRight && (row === 0 || row === 2 || col === gridSize - 1 || col === gridSize - 3)) ||
-                           (isBottomLeft && (row === gridSize - 1 || row === gridSize - 3 || col === 0 || col === 2));
-      const isCenter = (isTopLeft && row === 1 && col === 1) ||
-                       (isTopRight && row === 1 && col === gridSize - 2) ||
-                       (isBottomLeft && row === gridSize - 2 && col === 1);
-
-      let filled = false;
-      if (isPositionMarker) {
-        filled = isOuterBorder || isCenter;
-      } else {
-        // Pseudo-random pattern from hash
-        const seed = (hash * (row * gridSize + col + 1) * 31) % 100;
-        filled = seed > 45;
-      }
-
-      if (filled) {
-        cells.push(
-          <rect
-            key={`${row}-${col}`}
-            x={col * cellSize}
-            y={row * cellSize}
-            width={cellSize}
-            height={cellSize}
-            rx={cellSize * 0.1}
-            className="fill-kg-green-p"
-          />
-        );
-      }
-    }
-  }
-
-  return (
-    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} className="rounded-lg">
-      <rect width={size} height={size} className="fill-white" rx={4} />
-      {cells}
-    </svg>
-  );
-}
 
 export const UserQueue = ({ stallOrders = [], setStallOrders }) => {
   const [orders, setOrders] = useState([]);
@@ -413,7 +357,7 @@ export const UserQueue = ({ stallOrders = [], setStallOrders }) => {
                                 >
                                   <div className="mt-4 bg-white rounded-2xl p-6 flex flex-col items-center gap-4 shadow-[0_8px_32px_rgba(0,166,81,0.15)]">
                                     {/* QR Code */}
-                                    <QRPattern data={pickupCode} size={140} />
+                                    <QRCodeSVG value={pickupCode} size={140} level="M" />
 
                                     {/* Pickup info */}
                                     <div className="text-center">
