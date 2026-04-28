@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 
 export const FloorMap = ({ floorSeats = [], setFloorSeats }) => {
   const [selectedSeat, setSelectedSeat] = useState(null);
-  const [liveSeats, setLiveSeats] = useState([]);
+
   const streamUrl =
     import.meta.env.VITE_CV_STREAM_URL ||
     `${window.location.protocol}//${window.location.host}/video_feed`;
@@ -11,37 +11,69 @@ export const FloorMap = ({ floorSeats = [], setFloorSeats }) => {
     import.meta.env.VITE_API_URL ||
     `${window.location.protocol}//${window.location.host}`;
 
-  useEffect(() => {
-    let cancelled = false;
+  const generateInitialMockup = () => {
+    const wings = ['LW', 'RW'];
+    const rows = [1, 2, 3, 4, 5, 6, 7];
+    const cols = [1, 2, 3, 4];
+    const mockup = [];
 
-    const loadSeats = () =>
-      fetch(`${apiBase}/api/seats/`)
-        .then((res) => {
-          if (!res.ok) throw new Error('Failed to fetch seats');
-          return res.json();
-        })
-        .then((data) => {
-          if (cancelled) return;
-          const normalized = data.map((s) => ({
-            id: s.id || s.seat_id,
-            table_id: s.table_id,
-            status: s.status,
-            lastUpdate: 'Live',
-          }));
-          setLiveSeats(normalized);
-        })
-        .catch(() => {
-          if (!cancelled) setLiveSeats([]);
+    wings.forEach(wing => {
+      rows.forEach(row => {
+        cols.forEach(col => {
+          if ((wing === 'LW' && col > 2) || (wing === 'RW' && col <= 2)) return;
+          const tableId = `${wing}-R${row}-C${col}`;
+          
+          for (let s = 1; s <= 6; s++) {
+            const seatId = `${tableId}-S${s}`;
+            let status = 'vacant';
+            
+            // Create a realistic initial state: mix of busy tables and empty tables
+            const rand = Math.random();
+            // Higher chance to be occupied if it's near the front (R1, R2)
+            const busyThreshold = 0.3 + (row * 0.05); 
+            if (rand > 0.90) status = 'reserved';
+            else if (rand > busyThreshold) status = 'occupied';
+
+            mockup.push({ id: seatId, seat_id: seatId, table_id: tableId, status, lastUpdate: 'Live' });
+          }
         });
+      });
+    });
+    return mockup;
+  };
 
-    loadSeats();
-    const timer = setInterval(loadSeats, 5000);
+  const [liveSeats, setLiveSeats] = useState(generateInitialMockup());
 
-    return () => {
-      cancelled = true;
-      clearInterval(timer);
-    };
-  }, [apiBase]);
+  useEffect(() => {
+    // 🎭 PITCH DECK SHOWCASE MODE 🎭
+    // Simulates a live, breathing canteen by randomly flipping seat statuses over time
+    const timer = setInterval(() => {
+      setLiveSeats(prev => {
+        const next = [...prev];
+        // Flip 1 to 4 random seats every tick
+        const numFlips = Math.floor(Math.random() * 4) + 1;
+        
+        for(let i=0; i<numFlips; i++) {
+            const idx = Math.floor(Math.random() * next.length);
+            const currentStatus = next[idx].status;
+            
+            if (currentStatus === 'occupied') {
+               // 70% chance to become vacant, 30% stay occupied
+               next[idx] = { ...next[idx], status: Math.random() > 0.3 ? 'vacant' : 'occupied' };
+            } else if (currentStatus === 'vacant') {
+               // 80% chance to become occupied, 20% reserved
+               next[idx] = { ...next[idx], status: Math.random() > 0.2 ? 'occupied' : 'reserved' };
+            } else {
+               // Reserved -> usually becomes occupied as people arrive
+               next[idx] = { ...next[idx], status: 'occupied' };
+            }
+        }
+        return next;
+      });
+    }, 2000); // Fast updates for the pitch deck
+
+    return () => clearInterval(timer);
+  }, []);
 
   const effectiveSeats = useMemo(() => {
     const source = liveSeats.length > 0 ? liveSeats : floorSeats;
@@ -201,25 +233,7 @@ export const FloorMap = ({ floorSeats = [], setFloorSeats }) => {
         </div>
       </div>
 
-      {/* ═══ Live AI Stream Feed ═══ */}
-      <div className="mx-2 mb-4 mt-2 rounded-2xl border border-kg-green/20 bg-kg-card/80 p-4 shadow-[0_20px_50px_rgba(0,0,0,0.5)] backdrop-blur-md overflow-hidden relative shrink-0">
-        <div className="absolute top-0 right-0 p-4 flex items-center gap-2 z-10 drop-shadow-md">
-           <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse border border-red-900" />
-           <span className="text-[10px] font-en font-black text-white/80 uppercase tracking-[0.2em] leading-none">Rec / Live</span>
-        </div>
-        <h2 className="font-en font-black text-xs text-kg-green-l/70 uppercase tracking-[0.3em] mb-3 text-left">Telemetry Feed</h2>
-        <div className="w-full relative aspect-video bg-[#020504] rounded-xl overflow-hidden border border-white/5 shadow-[inset_0_0_50px_rgba(0,0,0,1)]">
-          <img 
-               src={streamUrl}
-               alt="AI Live Feed" 
-               className="w-full h-full object-contain" 
-               onError={(e) => {
-                  e.target.style.display = 'none';
-                  e.target.parentElement.innerHTML += '<div class="absolute inset-0 flex flex-col items-center justify-center text-kg-green-p/20 font-en font-black uppercase text-[10px] tracking-widest"><div class="w-8 h-8 border-2 border-kg-green-p/20 border-t-kg-green-p/60 rounded-full animate-spin mb-4"></div>Awaiting Signal...</div>';
-               }}
-           />
-        </div>
-      </div>
+      {/* Removed Live Telemetry Feed for Pitch Deck Showcase */}
 
       {/* ═══ Seat Detail Modal ═══ */}
       <AnimatePresence>

@@ -271,9 +271,11 @@ export const UserQueue = ({ stallOrders = [], setStallOrders }) => {
       {/* ═══ Page Header ═══ */}
       <div className="flex justify-between items-end mb-5 px-1">
         <div>
-          <div className="font-en font-extrabold text-2xl leading-none italic uppercase">สถานะคิว</div>
-          <div className="text-[10px] text-kg-green-p/40 font-en tracking-[0.2em] uppercase mt-1">
-            {totalOrders > 0 ? `${totalOrders} ออเดอร์ · ${shopGroups.length} ร้าน` : 'ไม่มีออเดอร์'}
+          <div className="font-en font-black text-3xl leading-none italic uppercase tracking-tighter bg-clip-text text-transparent bg-gradient-to-r from-kg-green-l to-white">
+            Smart Queue
+          </div>
+          <div className="text-[10px] text-kg-green-p/50 font-en tracking-[0.3em] uppercase mt-1">
+            {totalOrders > 0 ? `${totalOrders} Active Orders · ${shopGroups.length} Shops` : 'ไม่มีออเดอร์'}
           </div>
         </div>
         <div className="flex items-center gap-1.5">
@@ -319,12 +321,18 @@ export const UserQueue = ({ stallOrders = [], setStallOrders }) => {
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, x: -50 }}
                         transition={{ delay: idx * 0.05 }}
-                        className={`bg-kg-card border rounded-2xl p-5 transition-all ${
+                        className={`backdrop-blur-xl bg-kg-card/80 border rounded-3xl p-5 transition-all duration-500 relative overflow-hidden z-0 ${
                           isReady
-                            ? 'border-kg-green-l/40 shadow-[0_0_24px_rgba(0,166,81,0.12)] ring-1 ring-kg-green-l/20'
-                            : 'border-kg-green/15'
+                            ? 'border-kg-green-l/50 shadow-[0_10px_40px_rgba(0,166,81,0.25)] ring-1 ring-kg-green-l/30'
+                            : isPreparing
+                            ? 'border-kg-gold/40 shadow-[0_10px_40px_rgba(201,176,55,0.15)] ring-1 ring-kg-gold/20'
+                            : 'border-kg-green/15 hover:border-kg-green/30 hover:bg-kg-card/90 shadow-xl'
                         }`}
                       >
+                        {/* Premium Glow Effects */}
+                        {isReady && <div className="absolute top-0 right-0 w-48 h-48 bg-kg-green-l/20 rounded-full blur-[50px] -z-10 translate-x-1/2 -translate-y-1/2" />}
+                        {isPreparing && <div className="absolute top-0 right-0 w-48 h-48 bg-kg-gold/15 rounded-full blur-[50px] -z-10 translate-x-1/2 -translate-y-1/2" />}
+
                         {/* Order header: queue token + status */}
                         <div className="flex items-center justify-between mb-3">
                           <div className="flex items-center gap-2">
@@ -336,12 +344,12 @@ export const UserQueue = ({ stallOrders = [], setStallOrders }) => {
                             </span>
                           </div>
                           {/* Status badge */}
-                          <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold border ${
+                          <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-black border tracking-widest uppercase shadow-sm ${
                             isReady
-                              ? 'bg-kg-green-l/15 border-kg-green-l/30 text-kg-green-l'
+                              ? 'bg-kg-green-l/15 border-kg-green-l/40 text-kg-green-l'
                               : isPreparing
-                              ? 'bg-kg-gold/10 border-kg-gold/25 text-kg-gold'
-                              : 'bg-kg-green-p/5 border-kg-green-p/10 text-kg-green-p/40'
+                              ? 'bg-kg-gold/15 border-kg-gold/40 text-kg-gold'
+                              : 'bg-kg-green-p/5 border-kg-green-p/20 text-kg-green-p/50'
                           }`}>
                             <span className={`w-1.5 h-1.5 rounded-full ${
                               isReady ? 'bg-kg-green-l' : isPreparing ? 'bg-kg-gold animate-pulse' : 'bg-kg-green-p/30'
@@ -380,7 +388,7 @@ export const UserQueue = ({ stallOrders = [], setStallOrders }) => {
                           >
                             <button
                               onClick={() => setExpandedQR(isQRExpanded ? null : orderId)}
-                              className="w-full py-3 bg-gradient-to-r from-kg-green to-kg-green-l text-white font-bold rounded-xl text-xs uppercase tracking-[0.15em] shadow-lg transition-all flex items-center justify-center gap-2"
+                              className="w-full py-3.5 bg-gradient-to-r from-kg-green to-kg-green-l text-white font-black rounded-2xl text-[10px] uppercase tracking-[0.2em] shadow-[0_10px_30px_rgba(0,166,81,0.4)] hover:shadow-[0_10px_40px_rgba(0,166,81,0.6)] hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-2"
                             >
                               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                                 <rect x="3" y="3" width="7" height="7" rx="1" />
