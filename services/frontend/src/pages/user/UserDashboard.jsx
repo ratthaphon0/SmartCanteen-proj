@@ -80,12 +80,25 @@ export const UserDashboard = ({ cart, setCart, stallOrders }) => {
 
   return (
     <div className="flex flex-col h-full bg-kg-dark text-kg-green-p font-th">
-      {/* ═══ Profile Hero ═══ */}
+      {/* ═══ Profile & Gamification Hero ═══ */}
       <div className="relative overflow-hidden bg-gradient-to-br from-kg-green-d to-kg-green/30 border border-kg-green/25 rounded-2xl p-6 mb-5 group">
         <div className="absolute right-0 top-0 text-[80px] opacity-[0.05] leading-none select-none group-hover:scale-110 transition-transform">🌿</div>
-        <p className="text-sm text-kg-green-l/80 mb-1 font-en font-bold uppercase tracking-widest">สวัสดี 👋</p>
-        <h2 className="text-2xl font-bold mb-3 italic">ด.ช.เกษตร สุขสงบ</h2>
-        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-kg-green-l/15 text-kg-green-l border border-kg-green-l/25 font-en tracking-wider uppercase">🏫 คณะเกษตร</span>
+        <div className="flex justify-between items-start">
+          <div>
+            <p className="text-sm text-kg-green-l/80 mb-1 font-en font-bold uppercase tracking-widest">สวัสดี 👋</p>
+            <h2 className="text-2xl font-bold mb-3 italic">ด.ช.เกษตร สุขสงบ</h2>
+            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-kg-green-l/15 text-kg-green-l border border-kg-green-l/25 font-en tracking-wider uppercase">🏫 คณะเกษตร</span>
+          </div>
+          <div className="text-right">
+            <div className="inline-flex flex-col items-center justify-center bg-kg-card/80 border border-kg-gold/30 rounded-2xl p-3 shadow-[0_8px_24px_rgba(201,176,55,0.15)] backdrop-blur-md">
+              <span className="text-[9px] font-en uppercase tracking-widest text-kg-gold mb-1">KU Rewards</span>
+              <div className="flex items-center gap-1.5">
+                <span className="text-lg">🌟</span>
+                <span className="font-en font-black text-2xl text-white italic leading-none">450</span>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* ═══ Fastest Shop Recommendation ═══ */}
@@ -96,12 +109,15 @@ export const UserDashboard = ({ cart, setCart, stallOrders }) => {
           className="mb-5 bg-gradient-to-r from-kg-green-l/10 via-kg-gold/8 to-kg-green/10 border border-kg-green-l/30 rounded-2xl p-4 relative overflow-hidden"
         >
           <div className="absolute top-0 right-0 w-28 h-28 bg-kg-green-l/5 rounded-full blur-3xl -mr-10 -mt-10"></div>
-          <div className="flex items-center gap-2 mb-3">
+          <div className="flex items-center justify-between mb-3">
             <span className="text-[10px] font-en font-black text-kg-green-l uppercase tracking-[0.15em] flex items-center gap-1.5">
               <span className="w-1.5 h-1.5 rounded-full bg-kg-green-l animate-pulse"></span>
-              ⚡ เร็วที่สุดตอนนี้
+              ⚡ Smart Routing (เร็วที่สุด)
             </span>
-            <span className="text-[9px] bg-kg-green-l/15 text-kg-green-l px-2 py-0.5 rounded-full font-en font-bold">~{fastestRec.waitMinutes} นาที</span>
+            <div className="flex items-center gap-2">
+              <span className="text-[9px] bg-kg-gold/15 border border-kg-gold/30 text-kg-gold px-2 py-0.5 rounded-full font-en font-bold animate-pulse">รับคะแนน ×2</span>
+              <span className="text-[9px] bg-kg-green-l/15 text-kg-green-l px-2 py-0.5 rounded-full font-en font-bold">~{fastestRec.waitMinutes} นาที</span>
+            </div>
           </div>
           <div className="flex items-center gap-3">
             <div className="w-12 h-12 rounded-xl bg-kg-card/80 border border-kg-green-l/20 flex items-center justify-center text-2xl shrink-0">{fastestRec.menu.emoji}</div>
@@ -129,6 +145,42 @@ export const UserDashboard = ({ cart, setCart, stallOrders }) => {
           </div>
         </motion.div>
       )}
+
+      {/* ═══ ESG Zero Food Waste (Happy Hour) ═══ */}
+      <motion.div
+        initial={{ opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="mb-6 bg-gradient-to-r from-[#003D6A]/20 to-transparent border border-[#003D6A]/30 rounded-2xl p-4"
+      >
+        <div className="flex items-center gap-2 mb-3">
+          <span className="text-[10px] font-en font-black text-[#00a8ff] uppercase tracking-[0.15em] flex items-center gap-1.5">
+            🌱 Zero Food Waste
+          </span>
+          <span className="text-[9px] bg-[#00a8ff]/15 text-[#00a8ff] px-2 py-0.5 rounded-full font-en font-bold">Clearance -50%</span>
+        </div>
+        <div className="flex items-center gap-3 bg-kg-card/40 p-2 rounded-xl border border-white/5">
+          <div className="w-10 h-10 rounded-lg bg-kg-surface flex items-center justify-center text-xl shrink-0 opacity-80">🍜</div>
+          <div className="flex-1 min-w-0">
+            <div className="font-bold text-xs mb-0.5 truncate">บะหมี่แห้ง (หมูแดง)</div>
+            <div className="flex items-center gap-2 text-[9px] text-kg-green-p/50 font-en">
+              <span className="line-through">฿35</span>
+              <span className="font-extrabold text-[#00a8ff] text-[11px]">฿17</span>
+              <span>· ร้านก๋วยเตี๋ยว</span>
+            </div>
+          </div>
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={() => {
+              // Dummy logic for mockup
+              alert('เพิ่มสินค้า Clearance ลงตะกร้าแล้ว (Mockup)');
+            }}
+            className="px-3 py-1.5 bg-[#003D6A] text-white text-[9px] font-bold rounded-lg uppercase tracking-wider shrink-0 border border-[#00a8ff]/30"
+          >
+            + สั่งเลย
+          </motion.button>
+        </div>
+      </motion.div>
 
       {/* ═══ Shop Tab Bar ═══ */}
       <div className="mb-5">

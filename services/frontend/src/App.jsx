@@ -23,6 +23,9 @@ import { AdminConfig } from './pages/admin/AdminConfig';
 // Core Floor Map
 import FloorMap from './pages/FloorMap';
 
+// TV Signage
+import { DigitalSignage } from './pages/DigitalSignage';
+
 function App() {
   const [cart, setCart] = useState([]);
   const [stallOrders, setStallOrders] = useState([]);
@@ -144,6 +147,9 @@ function App() {
       <Routes>
         <Route path="/" element={<Navigate to="/login" replace />} />
         
+        {/* TV Digital Signage */}
+        <Route path="/signage" element={<DigitalSignage />} />
+
         {/* Auth / Login */}
         <Route path="/login" element={<UserLogin {...sharedProps} />} />
 
