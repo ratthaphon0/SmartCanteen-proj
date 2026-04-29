@@ -53,3 +53,7 @@ coverage.xml
 
 # ─── B.L.A.S.T. Temp Workbench ───────────────
 .tmp/
+
+
+# ─── Antigravity AI Kit ───────────────────────
+.agent/
