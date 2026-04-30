@@ -139,7 +139,8 @@ function App() {
     stallOrders, setStallOrders,
     storeList, setStoreList,
     floorSeats, setFloorSeats,
-    userRole, setUserRole
+    userRole, setUserRole,
+    API_URL, WS_URL
   };
 
   return (

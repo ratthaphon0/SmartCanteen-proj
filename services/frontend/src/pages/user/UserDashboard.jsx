@@ -1,6 +1,8 @@
 import React, { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import useCartStore from '../../stores/cartStore';
+import QueueDensityBadge from '../../components/QueueDensityBadge';
+import { useEffect } from 'react';
 
 // ─── Shop & Menu Data ────────────────────────────
 // avgTimePerDish = เวลาเฉลี่ยต่อจาน (นาที)
@@ -192,22 +194,29 @@ export const UserDashboard = ({ cart, setCart, stallOrders }) => {
           {SHOPS.map(shop => {
             const isActive = shop.shopId === selectedShopId;
             const waitTime = getShopWaitTime(shop);
+            // Mock density for demo
+            const density = shop.queueCount > 3 ? 'High' : (shop.queueCount > 1 ? 'Medium' : 'Low');
             return (
               <motion.button
                 key={shop.shopId}
                 whileTap={{ scale: 0.95 }}
                 onClick={() => setSelectedShopId(shop.shopId)}
-                className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-bold whitespace-nowrap transition-all border ${
+                className={`flex flex-col items-start gap-1.5 p-4 rounded-3xl text-xs font-bold whitespace-nowrap transition-all border ${
                   isActive
                     ? 'bg-kg-green text-white border-kg-green-l/40 shadow-[0_4px_16px_rgba(0,102,51,0.3)]'
                     : 'bg-kg-card text-kg-green-p/50 border-kg-green/15 hover:border-kg-green/40 hover:text-kg-green-p/80'
                 }`}
               >
-                <span className="text-sm">{shop.icon}</span>
-                <span>{shop.shortName}</span>
-                <span className={`text-[9px] px-1.5 py-0.5 rounded-full font-en ${
-                  isActive ? 'bg-white/20 text-white' : 'bg-kg-green-p/5 text-kg-green-p/40'
-                }`}>~{waitTime}m</span>
+                <div className="flex items-center gap-2">
+                  <span className="text-xl">{shop.icon}</span>
+                  <span>{shop.shortName}</span>
+                </div>
+                <div className="flex flex-col items-start gap-2 mt-1">
+                  <QueueDensityBadge density={density} />
+                  <span className={`text-[9px] font-en ${
+                    isActive ? 'text-white/70' : 'text-kg-green-p/40'
+                  }`}>~{waitTime} นาที</span>
+                </div>
               </motion.button>
             );
           })}

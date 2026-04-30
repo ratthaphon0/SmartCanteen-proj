@@ -16,7 +16,7 @@ from sqlalchemy import select
 
 from config import settings
 from database import engine, Base, AsyncSessionLocal
-from routers import seats, orders, queue, stalls
+from routers import seats, orders, queue, stalls, analytics
 from models.db_models import Seat, SeatHistory
 
 # ─── Logging ──────────────────────────────────────
@@ -174,6 +174,7 @@ app.include_router(seats.router, prefix="/api/seats", tags=["Seats"])
 app.include_router(orders.router, prefix="/api/orders", tags=["Orders"])
 app.include_router(queue.router, prefix="/api/queue", tags=["Queue"])
 app.include_router(stalls.router, prefix="/api/stalls", tags=["Stalls"])
+app.include_router(analytics.router, prefix="/api/analytics", tags=["Analytics"])
 
 
 # ─── Health Check ─────────────────────────────────
